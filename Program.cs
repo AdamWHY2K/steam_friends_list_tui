@@ -193,12 +193,7 @@ void DisplayFriendsList()
     Console.WriteLine("╔════════════════════════════════════════════════════════════════════════════════╗");
     Console.WriteLine("║                                 STEAM FRIENDS LIST                                ║");
     Console.WriteLine("╠════════════════════════════════════════════════════════════════════════════════╣");
-    Console.WriteLine($"║ Total Friends: {actualFriendCount} ║");
-    
-    if (blockedCount > 0 || pendingCount > 0 || ignoredCount > 0)
-    {
-        Console.WriteLine($"║ Filtered out: {blockedCount} blocked, {pendingCount} pending, {ignoredCount} ignored{"",-34} ║");
-    }
+    Console.WriteLine($"║ {actualFriendCount} friends, {pendingCount} pending, {blockedCount} blocked, {ignoredCount} ignored{"",-34} ║");
     
     Console.WriteLine("╠════════════════════════════════════════════════════════════════════════════════╣");
 
