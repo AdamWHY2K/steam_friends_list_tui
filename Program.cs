@@ -56,6 +56,8 @@ while ( isRunning )
 
 async void OnConnected( SteamClient.ConnectedCallback callback )
 {
+    if (steamUser == null)
+        return;
     // Start an authentication session by requesting a link
     var authSession = await steamClient.Authentication.BeginAuthSessionViaQRAsync( new AuthSessionDetails());
 
@@ -209,7 +211,8 @@ void DisplayFriendsList()
 
     Console.WriteLine("║                                                                                ║");
 
-    int actualFriendIndex = 0;
+    // Create a list to hold friend data for sorting
+    var friendsList = new List<(SteamID steamId, string name, EPersonaState state, string statusText, string statusColor, string gameText, DateTime lastSeen)>();
     
     for ( int x = 0 ; x < totalCount ; x++ )
     {
@@ -222,10 +225,10 @@ void DisplayFriendsList()
         // Only display actual friends - exclude blocked users, pending requests, ignored users, etc.
         if (relationship == EFriendRelationship.Friend)
         {
-            actualFriendIndex++;
             string? friendName = steamFriends.GetFriendPersonaName( steamIdFriend );
             string statusText;
             string statusColor;
+            string gameText = "";
             
             // Only show actual status if we have persona data, otherwise show "Loading..."
             if (!string.IsNullOrEmpty(friendName))
@@ -248,9 +251,9 @@ void DisplayFriendsList()
                 // For offline friends, add last seen information
                 if (friendState == EPersonaState.Offline)
                 {
-                    if (lastSeenTimes.TryGetValue(steamIdFriend, out DateTime lastSeen) && lastSeen != DateTime.MinValue)
+                    if (lastSeenTimes.TryGetValue(steamIdFriend, out DateTime lastSeenValue) && lastSeenValue != DateTime.MinValue)
                     {
-                        var timeDiff = DateTime.Now - lastSeen;
+                        var timeDiff = DateTime.Now - lastSeenValue;
                         string lastSeenText = GetLastSeenText(timeDiff);
                         statusText = $"{baseStatus} - Last online {lastSeenText}";
                     }
@@ -266,6 +269,7 @@ void DisplayFriendsList()
                     if (!string.IsNullOrEmpty(gameName))
                     {
                         statusText = $"{baseStatus} - {gameName}";
+                        gameText = gameName;
                     }
                     else
                     {
@@ -279,40 +283,61 @@ void DisplayFriendsList()
                             if (appNameCache.TryGetValue(gameId.AppID, out string? cachedName))
                             {
                                 statusText = $"{baseStatus} - {cachedName}";
+                                gameText = cachedName;
                             }
                             else
                             {
                                 // Request app info if we don't have it
                                 RequestAppInfo(gameId.AppID);
                                 statusText = $"{baseStatus} - Game ID: {gameId.AppID}";
+                                gameText = $"Game ID: {gameId.AppID}";
                             }
                         }
                     }
                 }
+                
+                // Get last seen time for sorting
+                DateTime lastSeenTime = lastSeenTimes.TryGetValue(steamIdFriend, out DateTime lastSeen) ? lastSeen : DateTime.MinValue;
+
+                friendsList.Add((steamIdFriend, friendName, friendState, statusText, statusColor, gameText, lastSeenTime));
             }
             else
             {
                 friendName = "Loading...";
                 statusText = "Loading...";
                 statusColor = "\u001b[90m"; // Dark gray
+                friendsList.Add((steamIdFriend, friendName, EPersonaState.Offline, statusText, statusColor, "", DateTime.MinValue));
             }
-            
-            // Truncate name if too long
-            if (friendName.Length > 20)
-                friendName = friendName.Substring(0, 17) + "...";
-                
-            // Truncate status text if too long
-            if (statusText.Length > 54)
-                statusText = statusText.Substring(0, 51) + "...";
-            
-            // Create the line with proper spacing
-            string line = $"║ {friendName,-20} {statusColor}{statusText}\u001b[0m";
-            // Pad to full width
-            while (line.Length < 81) line += " ";
-            line += " ║";
-            
-            Console.WriteLine(line);
         }
+    }
+    
+    var sortedFriends = friendsList.OrderBy(f => string.IsNullOrEmpty(f.gameText) ? 1 : 0)  // Playing games first (0), then not playing (1)
+                                   .ThenBy(f => f.gameText)  // Then by game name alphabetically
+                                   .ThenBy(f => GetStatusSortOrder(f.state))  // Status priority
+                                   .ThenByDescending(f => f.lastSeen)  // Most recent last seen first
+                                   .ToList();
+    
+    foreach (var friend in sortedFriends)
+    {
+        string friendName = friend.name;
+        string statusText = friend.statusText;
+        string statusColor = friend.statusColor;
+        
+        // Truncate name if too long
+        if (friendName.Length > 20)
+            friendName = friendName.Substring(0, 17) + "...";
+            
+        // Truncate status text if too long
+        if (statusText.Length > 54)
+            statusText = statusText.Substring(0, 51) + "...";
+        
+        // Create the line with proper spacing
+        string line = $"║ {friendName,-20} {statusColor}{statusText}\u001b[0m";
+        // Pad to full width
+        while (line.Length < 81) line += " ";
+        line += " ║";
+        
+        Console.WriteLine(line);
     }
     
     Console.WriteLine("╚════════════════════════════════════════════════════════════════════════════════╝");
@@ -474,4 +499,20 @@ string GetLastSeenText(TimeSpan timeDiff)
         return $"{(int)(timeDiff.TotalDays / 30)} month{((int)(timeDiff.TotalDays / 30) == 1 ? "" : "s")} ago";
     else
         return $"{(int)(timeDiff.TotalDays / 365)} year{((int)(timeDiff.TotalDays / 365) == 1 ? "" : "s")} ago";
+}
+
+int GetStatusSortOrder(EPersonaState state)
+{
+    return state switch
+    {
+        EPersonaState.Online => 1,
+        EPersonaState.LookingToPlay => 2,
+        EPersonaState.LookingToTrade => 3,
+        EPersonaState.Away => 4,
+        EPersonaState.Busy => 5,
+        EPersonaState.Snooze => 6,
+        EPersonaState.Invisible => 7,
+        EPersonaState.Offline => 8,
+        _ => 9
+    };
 }
