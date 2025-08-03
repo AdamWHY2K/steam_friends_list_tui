@@ -29,6 +29,10 @@ manager.Subscribe<SteamUser.LoggedOnCallback>( OnLoggedOn );
 manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
 
 var isRunning = true;
+var currentPersonaName = string.Empty;
+var currentGame = string.Empty;
+var currentPlayingAppID = 0u; // Track the current user's playing app ID
+var currentUserState = EPersonaState.Online; // Track the current user's persona state
 var friendsListReceived = false;
 var lastPersonaStates = new Dictionary<SteamID, EPersonaState>();
 var appNameCache = new Dictionary<uint, string>();
@@ -36,7 +40,7 @@ var lastSeenTimes = new Dictionary<SteamID, DateTime>();
 
 // we use the following callbacks for friends related activities
 manager.Subscribe<SteamUser.AccountInfoCallback>(OnAccountInfo);
-// manager.Subscribe<SteamUser.PlayingSessionStateCallback>( OnPlayingSession );
+manager.Subscribe<SteamUser.PlayingSessionStateCallback>(OnPlayingSession);
 manager.Subscribe<SteamFriends.FriendsListCallback>( OnFriendsList );
 manager.Subscribe<SteamFriends.PersonaStateCallback>(OnPersonaState);
 manager.Subscribe<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo);
@@ -110,10 +114,42 @@ void OnAccountInfo( SteamUser.AccountInfoCallback callback )
     // before being able to interact with friends, you must wait for the account info callback
     // this callback is posted shortly after a successful logon
 
+    currentPersonaName = callback.PersonaName;
+    currentGame = "";
+
     // at this point, we can go online on friends, so lets do that
     if (steamFriends != null)
     {
         steamFriends.SetPersonaState(EPersonaState.Online);
+        currentUserState = EPersonaState.Online; // Track our current state
+    }
+}
+
+void OnPlayingSession( SteamUser.PlayingSessionStateCallback callback )
+{
+    currentPlayingAppID = callback.PlayingAppID;
+    if (callback.PlayingAppID == 0)
+    {
+        currentGame = "";
+    }
+    else
+    {
+        // Check our cache first for the game name
+        if (appNameCache.TryGetValue(callback.PlayingAppID, out string? cachedName))
+        {
+            currentGame = cachedName;
+        }
+        else
+        {
+            // Request app info if we don't have it, but don't show "Game ID:" in the display
+            RequestAppInfo(callback.PlayingAppID);
+            currentGame = ""; // Don't show anything until we get the proper name
+        }
+    }
+    if (friendsListReceived)
+    {
+        Console.Clear();
+        DisplayFriendsList();
     }
 }
 
@@ -196,6 +232,30 @@ void DisplayFriendsList()
     Console.WriteLine($"║ {actualFriendCount} friends, {pendingCount} pending, {blockedCount} blocked, {ignoredCount} ignored{"",-34} ║");
     
     Console.WriteLine("╠════════════════════════════════════════════════════════════════════════════════╣");
+
+    // Display current user with proper formatting
+    string baseUserStatus = GetPersonaStateText(currentUserState);
+    string currentUserStatus = string.IsNullOrEmpty(currentGame) ? baseUserStatus : $"{baseUserStatus} - {currentGame}";
+    string currentUserColor = GetPersonaStateColor(currentUserState);
+    
+    // Truncate persona name if too long
+    string displayPersonaName = currentPersonaName.Length > 70 ? currentPersonaName.Substring(0, 67) + "..." : currentPersonaName;
+    
+    // Create the name line for current user
+    string currentUserNameLine = $"║ {displayPersonaName} (You)";
+    // Pad to full width
+    while (currentUserNameLine.Length < 79) currentUserNameLine += " ";
+    currentUserNameLine += " ║";
+    
+    // Create the status line for current user
+    string currentUserStatusLine = $"║   {currentUserColor}{currentUserStatus}\u001b[0m";
+    // Pad to full width (accounting for invisible color codes)
+    while (currentUserStatusLine.Length < 81) currentUserStatusLine += " ";
+    currentUserStatusLine += " ║";
+    
+    Console.WriteLine(currentUserNameLine);
+    Console.WriteLine(currentUserStatusLine);
+    Console.WriteLine("║                                                                                ║");
 
     if (actualFriendCount == 0)
     {
@@ -319,20 +379,28 @@ void DisplayFriendsList()
         string statusColor = friend.statusColor;
         
         // Truncate name if too long
-        if (friendName.Length > 20)
-            friendName = friendName.Substring(0, 17) + "...";
+        if (friendName.Length > 76)
+            friendName = friendName.Substring(0, 73) + "...";
             
         // Truncate status text if too long
-        if (statusText.Length > 54)
-            statusText = statusText.Substring(0, 51) + "...";
+        if (statusText.Length > 74)
+            statusText = statusText.Substring(0, 71) + "...";
         
-        // Create the line with proper spacing
-        string line = $"║ {friendName,-20} {statusColor}{statusText}\u001b[0m";
+        // Create the name line
+        string nameLine = $"║ {friendName}";
         // Pad to full width
-        while (line.Length < 81) line += " ";
-        line += " ║";
+        while (nameLine.Length < 79) nameLine += " ";
+        nameLine += " ║";
         
-        Console.WriteLine(line);
+        // Create the status line with indentation
+        string statusLine = $"║   {statusColor}{statusText}\u001b[0m";
+        // Pad to full width (accounting for invisible color codes)
+        while (statusLine.Length < 81) statusLine += " ";
+        statusLine += " ║";
+        
+        Console.WriteLine(nameLine);
+        Console.WriteLine(statusLine);
+        Console.WriteLine("║                                                                                ║");
     }
     
     Console.WriteLine("╚════════════════════════════════════════════════════════════════════════════════╝");
@@ -344,6 +412,15 @@ void OnPersonaState( SteamFriends.PersonaStateCallback callback )
     // this callback is received when the persona state (friend information) of a friend changes
     if (friendsListReceived && steamFriends != null)
     {
+        // Check if this is our own persona state changing
+        if (steamClient != null && callback.FriendID == steamClient.SteamID)
+        {
+            currentUserState = callback.State;
+            Console.Clear();
+            DisplayFriendsList();
+            return;
+        }
+        
         // Check if this is a friend (not blocked, pending, etc.)
         EFriendRelationship relationship = steamFriends.GetFriendRelationship(callback.FriendID);
         
@@ -407,6 +484,12 @@ void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)
             {
                 appNameCache[app.Key] = name;
                 
+                // If this is the game the current user is playing, update currentGame
+                if (app.Key == currentPlayingAppID && currentPlayingAppID != 0)
+                {
+                    currentGame = name;
+                }
+                
                 // Refresh display if we got new app info
                 if (friendsListReceived)
                 {
@@ -434,17 +517,17 @@ void OnLoggedOff( SteamUser.LoggedOffCallback callback )
 
 void DrawQRCode( QrAuthSession authSession )
 {
-    Console.WriteLine( $"Challenge URL: {authSession.ChallengeURL}" );
+    Console.WriteLine($"Challenge URL: {authSession.ChallengeURL}");
     Console.WriteLine();
 
     // Encode the link as a QR code
     using var qrGenerator = new QRCodeGenerator();
-    var qrCodeData = qrGenerator.CreateQrCode( authSession.ChallengeURL, QRCodeGenerator.ECCLevel.L );
-    using var qrCode = new AsciiQRCode( qrCodeData );
-    var qrCodeAsAsciiArt = qrCode.GetGraphic( 1, drawQuietZones: false );
+    var qrCodeData = qrGenerator.CreateQrCode(authSession.ChallengeURL, QRCodeGenerator.ECCLevel.L);
+    using var qrCode = new AsciiQRCode(qrCodeData);
+    var qrCodeAsAsciiArt = qrCode.GetGraphic(1, drawQuietZones: false);
 
-    Console.WriteLine( "Use the Steam Mobile App to sign in via QR code:" );
-    Console.WriteLine( qrCodeAsAsciiArt );
+    Console.WriteLine("Use the Steam Mobile App to sign in via QR code:");
+    Console.WriteLine(qrCodeAsAsciiArt);
 }
 
 string GetPersonaStateText(EPersonaState state)
