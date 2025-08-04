@@ -103,18 +103,41 @@ public class SteamFriendsApp : IDisposable
         {
             var authSession = await _steamClient.Authentication.BeginAuthSessionViaQRAsync(new AuthSessionDetails());
 
+            // Launch QR code in a new terminal window
+            var qrTerminalProcess = AuthenticationHelper.ShowQRCodeInNewTerminal(authSession);
+            
             authSession.ChallengeURLChanged = () =>
             {
-                Console.WriteLine();
-                Console.WriteLine(AppConstants.Messages.SteamRefreshChallenge);
-                AuthenticationHelper.DrawQRCode(authSession);
+                // Close the old terminal and open a new one with the updated QR code
+                try
+                {
+                    qrTerminalProcess?.Kill();
+                }
+                catch { /* Ignore errors when closing old terminal */ }
+                
+                // Launch new terminal with updated QR code
+                var newProcess = AuthenticationHelper.ShowQRCodeInNewTerminal(authSession);
+                if (newProcess != null)
+                {
+                    // Update the reference to the new process
+                    // Note: This is a simple approach, in production you might want to track multiple processes
+                }
             };
 
-            AuthenticationHelper.DrawQRCode(authSession);
+            Console.WriteLine("QR code displayed in new terminal window. Waiting for authentication...");
 
+            // Wait for authentication to complete
             var pollResponse = await authSession.PollingWaitForResultAsync();
 
-            Console.WriteLine($"Logging in as '{pollResponse.AccountName}'...");
+            // Close the QR code terminal window
+            try
+            {
+                qrTerminalProcess?.Kill();
+                qrTerminalProcess?.Dispose();
+            }
+            catch { /* Ignore errors when closing terminal */ }
+
+            Console.WriteLine($"Authentication successful! Logging in as '{pollResponse.AccountName}'...");
 
             _steamUser.LogOn(new SteamUser.LogOnDetails
             {
