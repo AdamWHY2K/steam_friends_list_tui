@@ -5,6 +5,7 @@ namespace SteamFriendsCLI.Models;
 public class AppState
 {
     public bool IsRunning { get; set; } = true;
+    public bool IsLoggedIn { get; set; } = false;
     public string CurrentPersonaName { get; set; } = string.Empty;
     public string CurrentGame { get; set; } = string.Empty;
     public uint CurrentPlayingAppID { get; set; } = 0u;

@@ -12,7 +12,7 @@ public class SteamCallbackHandler
     private readonly SteamFriends _steamFriends;
     private readonly SteamApps _steamApps;
     private readonly AppState _appState;
-    private readonly FriendsDisplayManager _displayManager;
+    private readonly TerminalGuiDisplayManager _displayManager;
 
     public SteamCallbackHandler(
         SteamClient steamClient,
@@ -20,7 +20,7 @@ public class SteamCallbackHandler
         SteamFriends steamFriends,
         SteamApps steamApps,
         AppState appState,
-        FriendsDisplayManager displayManager)
+        TerminalGuiDisplayManager displayManager)
     {
         _steamClient = steamClient;
         _steamUser = steamUser;
@@ -44,7 +44,9 @@ public class SteamCallbackHandler
             _appState.IsRunning = false;
             return;
         }
+        
         Console.WriteLine("Successfully logged on!");
+        _appState.IsLoggedIn = true;
     }
 
     public void OnAccountInfo(SteamUser.AccountInfoCallback callback)
@@ -79,7 +81,6 @@ public class SteamCallbackHandler
         
         if (_appState.FriendsListReceived)
         {
-            Console.Clear();
             _displayManager.DisplayFriendsList(_steamFriends);
         }
     }
@@ -123,7 +124,6 @@ public class SteamCallbackHandler
         if (callback.FriendID == _steamClient.SteamID)
         {
             _appState.CurrentUserState = callback.State;
-            Console.Clear();
             _displayManager.DisplayFriendsList(_steamFriends);
             return;
         }
@@ -158,7 +158,6 @@ public class SteamCallbackHandler
                 _appState.UpdateLastSeenTime(callback.FriendID, callback.LastLogOff);
             }
 
-            Console.Clear();
             _displayManager.DisplayFriendsList(_steamFriends);
         }
     }
@@ -182,7 +181,6 @@ public class SteamCallbackHandler
 
                     if (_appState.FriendsListReceived)
                     {
-                        Console.Clear();
                         _displayManager.DisplayFriendsList(_steamFriends);
                     }
                 }
@@ -193,6 +191,8 @@ public class SteamCallbackHandler
     public void OnLoggedOff(SteamUser.LoggedOffCallback callback)
     {
         Console.WriteLine("Logged off of Steam: {0}", callback.Result);
+        _appState.IsLoggedIn = false;
+        _appState.IsRunning = false;
     }
 
     private void RequestAppInfo(uint appId)

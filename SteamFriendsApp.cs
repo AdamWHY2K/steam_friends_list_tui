@@ -15,7 +15,7 @@ public class SteamFriendsApp : IDisposable
     private readonly SteamFriends _steamFriends;
     private readonly SteamApps _steamApps;
     private readonly AppState _appState;
-    private readonly FriendsDisplayManager _displayManager;
+    private readonly TerminalGuiDisplayManager _displayManager;
     private readonly SteamCallbackHandler _callbackHandler;
     private readonly CancellationTokenSource _cancellationTokenSource;
 
@@ -29,7 +29,7 @@ public class SteamFriendsApp : IDisposable
         _steamApps = _steamClient.GetHandler<SteamApps>() ?? throw new InvalidOperationException("Failed to get SteamApps handler");
         
         _appState = new AppState();
-        _displayManager = new FriendsDisplayManager(_appState);
+        _displayManager = new TerminalGuiDisplayManager(_appState);
         _callbackHandler = new SteamCallbackHandler(_steamClient, _steamUser, _steamFriends, _steamApps, _appState, _displayManager);
         _cancellationTokenSource = new CancellationTokenSource();
 
@@ -56,9 +56,28 @@ public class SteamFriendsApp : IDisposable
             Console.WriteLine("Connecting to Steam...");
             _steamClient.Connect();
 
-            while (_appState.IsRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
+            // Wait for connection and authentication to complete before starting GUI
+            while (!_appState.IsLoggedIn && _appState.IsRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
             {
                 _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+            }
+
+            if (_appState.IsLoggedIn && _appState.IsRunning)
+            {
+                // Initialize and run Terminal.Gui interface
+                _displayManager.Initialize();
+                _displayManager.UpdateConnectionStatus("Connected to Steam - Loading friends list...");
+                
+                // Start the GUI in a separate task
+                var guiTask = Task.Run(() => _displayManager.Run());
+
+                while (_appState.IsRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+                }
+
+                _displayManager.Stop();
+                guiTask.Wait(TimeSpan.FromSeconds(2)); // Give GUI time to close
             }
         }
         catch (Exception ex)
@@ -112,11 +131,13 @@ public class SteamFriendsApp : IDisposable
     {
         _appState.IsRunning = false;
         _cancellationTokenSource.Cancel();
+        _displayManager.Stop();
     }
 
     public void Dispose()
     {
         _steamClient?.Disconnect();
+        _displayManager?.Dispose();
         _cancellationTokenSource?.Dispose();
     }
 }
