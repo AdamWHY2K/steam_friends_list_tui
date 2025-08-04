@@ -1,5 +1,6 @@
 using QRCoder;
 using SteamKit2.Authentication;
+using SteamFriendsCLI.Constants;
 
 namespace SteamFriendsCLI.Services;
 
@@ -16,7 +17,7 @@ public static class AuthenticationHelper
         using var qrCode = new AsciiQRCode(qrCodeData);
         var qrCodeAsAsciiArt = qrCode.GetGraphic(1, drawQuietZones: false);
 
-        Console.WriteLine("Use the Steam Mobile App to sign in via QR code:");
+        Console.WriteLine(AppConstants.Messages.UseQrCode);
         Console.WriteLine(qrCodeAsAsciiArt);
     }
 }

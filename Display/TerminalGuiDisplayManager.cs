@@ -1,28 +1,38 @@
 using System.Text;
+using System.Linq;
 using Terminal.Gui;
 using SteamKit2;
-using SteamFriendsCLI.Constants;
 using SteamFriendsCLI.Models;
 using SteamFriendsCLI.Services;
+using SteamFriendsCLI.Constants;
 
 namespace SteamFriendsCLI.Display;
 
-public class TerminalGuiDisplayManager : IDisposable
+public class TerminalGuiDisplayManager : IFriendsDisplayManager
 {
     private readonly AppState _appState;
-    private Window? _mainWindow;
-    private ListView? _friendsListView;
-    private Label? _statusLabel;
-    private Label? _userLabel;
+    private readonly UIComponentsManager _uiManager;
+    private readonly FriendsListBuilder _friendsBuilder;
+    private readonly UIEventHandler _eventHandler;
+    
     private List<FriendInfo> _currentFriendsList = new();
     private bool _isInitialized = false;
     
     // Event for requesting app info when game names are not cached
     public event Action<uint>? AppInfoRequested;
+    
+    // Event for requesting application exit
+    public event Action? ExitRequested;
 
     public TerminalGuiDisplayManager(AppState appState)
     {
         _appState = appState;
+        _uiManager = new UIComponentsManager(appState);
+        _friendsBuilder = new FriendsListBuilder(appState);
+        _eventHandler = new UIEventHandler();
+        
+        // Wire up event handlers
+        _eventHandler.ExitRequested += OnExitRequested;
     }
 
     public void Initialize()
@@ -31,110 +41,12 @@ public class TerminalGuiDisplayManager : IDisposable
             return;
 
         Application.Init();
-        Colors.Base.Normal = new Terminal.Gui.Attribute(Color.White, Color.Black);
-        Colors.Base.Focus = new Terminal.Gui.Attribute(Color.BrightYellow, Color.Black);
-        Colors.Base.HotNormal = new Terminal.Gui.Attribute(Color.BrightCyan, Color.Black);
-        Colors.Base.HotFocus = new Terminal.Gui.Attribute(Color.BrightBlue, Color.Black);
-        Colors.Base.Disabled = new Terminal.Gui.Attribute(Color.Gray, Color.Black);
-
-        _mainWindow = new Window("Steam Friends CLI")
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
-
-        CreateUserInfoSection();
-        CreateFriendsListSection();
-        CreateStatusSection();
-
-        Application.Top.Add(_mainWindow);
+        _uiManager.InitializeComponents();
+        _eventHandler.SetupEventHandlers(_uiManager);
+        
+        Application.Top.Add(_uiManager.MainWindow);
+        
         _isInitialized = true;
-    }
-
-    private void CreateUserInfoSection()
-    {
-        _userLabel = new Label("Loading user info...")
-        {
-            X = 1,
-            Y = 1,
-            Width = Dim.Fill() - 2,
-            Height = 1
-        };
-        _mainWindow!.Add(_userLabel);
-    }
-
-    private void CreateFriendsListSection()
-    {
-        var friendsFrame = new FrameView("Friends")
-        {
-            X = 1,
-            Y = 3,
-            Width = Dim.Fill() - 2,
-            Height = Dim.Fill() - 6
-        };
-
-        _friendsListView = new ListView()
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill(),
-            AllowsMarking = false,
-            AllowsMultipleSelection = false
-        };
-
-        friendsFrame.Add(_friendsListView);
-        _mainWindow!.Add(friendsFrame);
-    }
-
-    private void CreateStatusSection()
-    {
-        _statusLabel = new Label("Connecting to Steam...")
-        {
-            X = 1,
-            Y = Pos.Bottom(_mainWindow!) - 3,
-            Width = Dim.Fill() - 2,
-            Height = 1
-        };
-        _mainWindow!.Add(_statusLabel);
-
-        var helpLabel = new Label("Press 'q' to quit, 'r' to refresh")
-        {
-            X = 1,
-            Y = Pos.Bottom(_mainWindow!) - 2,
-            Width = Dim.Fill() - 2,
-            Height = 1
-        };
-        _mainWindow!.Add(helpLabel);
-    }
-
-    public void UpdateFriendsList(SteamFriends? steamFriends)
-    {
-        if (!_isInitialized || steamFriends == null)
-            return;
-
-        Application.MainLoop.Invoke(() =>
-        {
-            var (actualFriendCount, blockedCount, pendingCount, ignoredCount) = CountRelationships(steamFriends);
-            
-            UpdateStatusLabel(actualFriendCount, blockedCount, pendingCount, ignoredCount);
-            UpdateUserInfo();
-
-            if (actualFriendCount == 0)
-            {
-                _friendsListView!.SetSource(new string[] { "No friends found" });
-                return;
-            }
-
-            var friendsList = BuildFriendsList(steamFriends);
-            var sortedFriends = SortFriends(friendsList);
-            _currentFriendsList = sortedFriends;
-
-            var displayStrings = sortedFriends.Select(FormatFriendForDisplay).ToArray();
-            _friendsListView!.SetSource(displayStrings);
-        });
     }
 
     public void DisplayFriendsList(SteamFriends? steamFriends)
@@ -142,208 +54,15 @@ public class TerminalGuiDisplayManager : IDisposable
         UpdateFriendsList(steamFriends);
     }
 
-    private string FormatFriendForDisplay(FriendInfo friend)
+    public void UpdateConnectionStatus(string status)
     {
-        var nameAndStatus = $"{friend.Name}";
-        
-        if (!string.IsNullOrEmpty(friend.GameText))
+        if (!_isInitialized)
+            return;
+
+        Application.MainLoop.Invoke(() =>
         {
-            nameAndStatus += $" - Playing: {friend.GameText}";
-        }
-        else
-        {
-            var stateText = PersonaStateHelper.GetPersonaStateText(friend.State);
-            if (friend.State == EPersonaState.Offline && friend.LastSeen != DateTime.MinValue)
-            {
-                var timeDiff = DateTime.Now - friend.LastSeen;
-                var lastSeenText = PersonaStateHelper.GetLastSeenText(timeDiff);
-                nameAndStatus += $" - {stateText} (Last online {lastSeenText})";
-            }
-            else
-            {
-                nameAndStatus += $" - {stateText}";
-            }
-        }
-
-        return nameAndStatus;
-    }
-
-    private void UpdateStatusLabel(int actualFriendCount, int blockedCount, int pendingCount, int ignoredCount)
-    {
-        var status = $"Friends: {actualFriendCount}";
-        if (blockedCount > 0 || pendingCount > 0 || ignoredCount > 0)
-        {
-            status += $" | Blocked: {blockedCount} | Pending: {pendingCount} | Ignored: {ignoredCount}";
-        }
-        _statusLabel!.Text = status;
-    }
-
-    private void UpdateUserInfo()
-    {
-        var userInfo = $"User: {_appState.CurrentPersonaName ?? "Loading..."}";
-        if (!string.IsNullOrEmpty(_appState.CurrentGame))
-        {
-            userInfo += $" - Currently playing: {_appState.CurrentGame}";
-        }
-        else
-        {
-            var stateText = PersonaStateHelper.GetPersonaStateText(_appState.CurrentUserState);
-            userInfo += $" - {stateText}";
-        }
-        _userLabel!.Text = userInfo;
-    }
-
-    private (int actual, int blocked, int pending, int ignored) CountRelationships(SteamFriends steamFriends)
-    {
-        int totalCount = steamFriends.GetFriendCount();
-        int actualFriendCount = 0, blockedCount = 0, pendingCount = 0, ignoredCount = 0;
-
-        for (int i = 0; i < totalCount; i++)
-        {
-            SteamID steamIdFriend = steamFriends.GetFriendByIndex(i);
-            EFriendRelationship relationship = steamFriends.GetFriendRelationship(steamIdFriend);
-
-            switch (relationship)
-            {
-                case EFriendRelationship.Friend:
-                    actualFriendCount++;
-                    break;
-                case EFriendRelationship.Blocked:
-                    blockedCount++;
-                    break;
-                case EFriendRelationship.RequestRecipient:
-                    pendingCount++;
-                    break;
-                case EFriendRelationship.Ignored:
-                    ignoredCount++;
-                    break;
-            }
-        }
-
-        return (actualFriendCount, blockedCount, pendingCount, ignoredCount);
-    }
-
-    private List<FriendInfo> BuildFriendsList(SteamFriends steamFriends)
-    {
-        var friendsList = new List<FriendInfo>();
-        int totalCount = steamFriends.GetFriendCount();
-
-        for (int x = 0; x < totalCount; x++)
-        {
-            SteamID steamIdFriend = steamFriends.GetFriendByIndex(x);
-            EFriendRelationship relationship = steamFriends.GetFriendRelationship(steamIdFriend);
-
-            if (relationship == EFriendRelationship.Friend)
-            {
-                var friendInfo = CreateFriendInfo(steamFriends, steamIdFriend);
-                if (friendInfo != null)
-                {
-                    friendsList.Add(friendInfo);
-                }
-            }
-        }
-
-        return friendsList;
-    }
-
-    private FriendInfo? CreateFriendInfo(SteamFriends steamFriends, SteamID steamIdFriend)
-    {
-        string? friendName = steamFriends.GetFriendPersonaName(steamIdFriend);
-        
-        if (string.IsNullOrEmpty(friendName))
-        {
-            return new FriendInfo(
-                steamIdFriend, 
-                "Loading...", 
-                EPersonaState.Offline, 
-                "Loading...", 
-                DisplayConstants.Colors.DARK_GRAY, 
-                "", 
-                DateTime.MinValue
-            );
-        }
-
-        EPersonaState friendState = GetFriendState(steamFriends, steamIdFriend);
-        string baseStatus = PersonaStateHelper.GetPersonaStateText(friendState);
-        string statusColor = PersonaStateHelper.GetPersonaStateColor(friendState);
-        string statusText;
-        string gameText = "";
-
-        if (friendState == EPersonaState.Offline)
-        {
-            statusText = GetOfflineStatusText(steamIdFriend, baseStatus);
-        }
-        else
-        {
-            (statusText, gameText) = GetOnlineStatusText(steamFriends, steamIdFriend, baseStatus);
-        }
-
-        DateTime lastSeenTime = _appState.TryGetLastSeenTime(steamIdFriend, out DateTime lastSeen) 
-            ? lastSeen 
-            : DateTime.MinValue;
-
-        return new FriendInfo(steamIdFriend, friendName, friendState, statusText, statusColor, gameText, lastSeenTime);
-    }
-
-    private EPersonaState GetFriendState(SteamFriends steamFriends, SteamID steamIdFriend)
-    {
-        if (_appState.TryGetPersonaState(steamIdFriend, out EPersonaState trackedState))
-        {
-            return trackedState;
-        }
-        return steamFriends.GetFriendPersonaState(steamIdFriend);
-    }
-
-    private string GetOfflineStatusText(SteamID steamIdFriend, string baseStatus)
-    {
-        if (_appState.TryGetLastSeenTime(steamIdFriend, out DateTime lastSeenValue) && lastSeenValue != DateTime.MinValue)
-        {
-            var timeDiff = DateTime.Now - lastSeenValue;
-            string lastSeenText = PersonaStateHelper.GetLastSeenText(timeDiff);
-            return $"{baseStatus} - Last online {lastSeenText}";
-        }
-        return baseStatus;
-    }
-
-    private (string statusText, string gameText) GetOnlineStatusText(SteamFriends steamFriends, SteamID steamIdFriend, string baseStatus)
-    {
-        string? gameName = steamFriends.GetFriendGamePlayedName(steamIdFriend);
-        if (!string.IsNullOrEmpty(gameName))
-        {
-            return ($"{baseStatus} - {gameName}", gameName);
-        }
-
-        var gameId = steamFriends.GetFriendGamePlayed(steamIdFriend);
-        if (gameId != null && gameId.AppID != 0)
-        {
-            if (_appState.TryGetAppName(gameId.AppID, out string? cachedName) && !string.IsNullOrEmpty(cachedName))
-            {
-                return ($"{baseStatus} - {cachedName}", cachedName);
-            }
-            else
-            {
-                // Request app info for this game
-                AppInfoRequested?.Invoke(gameId.AppID);
-                return ($"{baseStatus} - Loading game name...", "Loading...");
-            }
-        }
-
-        return (baseStatus, "");
-    }
-
-    private List<FriendInfo> SortFriends(List<FriendInfo> friendsList)
-    {
-        return friendsList.OrderBy(f => string.IsNullOrEmpty(f.GameText) ? 1 : 0)
-                         .ThenBy(f => f.GameText)
-                         .ThenBy(f => PersonaStateHelper.GetStatusSortOrder(f.State))
-                         .ThenByDescending(f => f.LastSeen)
-                         .ToList();
-    }
-
-    private void RefreshDisplay()
-    {
-        _statusLabel!.Text = "Refreshing...";
-        // The refresh will be triggered by the callback handler
+            _uiManager.UpdateConnectionStatus(status);
+        });
     }
 
     public void Run()
@@ -362,21 +81,71 @@ public class TerminalGuiDisplayManager : IDisposable
         }
     }
 
-    public void UpdateConnectionStatus(string status)
+    private void UpdateFriendsList(SteamFriends? steamFriends)
     {
-        if (!_isInitialized)
+        if (!_isInitialized || steamFriends == null)
             return;
 
         Application.MainLoop.Invoke(() =>
         {
-            _statusLabel!.Text = status;
+            var (actualFriendCount, blockedCount, pendingCount) = _friendsBuilder.CountRelationships(steamFriends);
+            
+            _uiManager.UpdateStatusLabel(actualFriendCount, blockedCount, pendingCount);
+            _uiManager.UpdateUserInfo();
+
+            if (actualFriendCount == 0)
+            {
+                DisplayNoFriends();
+                return;
+            }
+
+            var friendsList = _friendsBuilder.BuildFriendsList(steamFriends);
+            ProcessAppInfoRequests(steamFriends, friendsList);
+            
+            var sortedFriends = _friendsBuilder.SortFriends(friendsList);
+            _currentFriendsList = sortedFriends;
+
+            _uiManager.FriendsDataSource?.UpdateFriends(sortedFriends);
+            _uiManager.FriendsListView?.SetNeedsDisplay();
         });
+    }
+
+    private void DisplayNoFriends()
+    {
+        var noFriendsInfo = new FriendInfo(
+            new SteamID(0), 
+            AppConstants.LoadingText.NoFriendsFound, 
+            EPersonaState.Offline, 
+            "", 
+            "", 
+            DateTime.MinValue
+        );
+        _uiManager.FriendsDataSource?.UpdateFriends(new List<FriendInfo> { noFriendsInfo });
+        _uiManager.FriendsListView?.SetNeedsDisplay();
+    }
+
+    private void ProcessAppInfoRequests(SteamFriends steamFriends, List<FriendInfo> friendsList)
+    {
+        SteamFriendsIterator.ForEachFriendOfType(steamFriends, EFriendRelationship.Friend, steamIdFriend =>
+        {
+            if (_friendsBuilder.NeedsAppInfoRequest(steamFriends, steamIdFriend, out uint appId))
+            {
+                AppInfoRequested?.Invoke(appId);
+            }
+        });
+    }
+
+    private void OnExitRequested()
+    {
+        ExitRequested?.Invoke();
     }
 
     public void Dispose()
     {
         if (_isInitialized)
         {
+            _eventHandler.CleanupEventHandlers(_uiManager);
+            _eventHandler.ExitRequested -= OnExitRequested;
             Application.Shutdown();
             _isInitialized = false;
         }

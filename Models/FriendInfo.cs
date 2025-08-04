@@ -7,7 +7,6 @@ public record FriendInfo(
     string Name,
     EPersonaState State,
     string StatusText,
-    string StatusColor,
     string GameText,
     DateTime LastSeen
 );

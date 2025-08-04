@@ -4,6 +4,7 @@ using SteamFriendsCLI.Models;
 using SteamFriendsCLI.Display;
 using SteamFriendsCLI.Handlers;
 using SteamFriendsCLI.Services;
+using SteamFriendsCLI.Constants;
 
 namespace SteamFriendsCLI;
 
@@ -15,7 +16,7 @@ public class SteamFriendsApp : IDisposable
     private readonly SteamFriends _steamFriends;
     private readonly SteamApps _steamApps;
     private readonly AppState _appState;
-    private readonly TerminalGuiDisplayManager _displayManager;
+    private readonly IFriendsDisplayManager _displayManager;
     private readonly SteamCallbackHandler _callbackHandler;
     private readonly CancellationTokenSource _cancellationTokenSource;
 
@@ -37,6 +38,9 @@ public class SteamFriendsApp : IDisposable
         
         // Wire up the app info request event from display manager to callback handler
         _displayManager.AppInfoRequested += _callbackHandler.RequestAppInfo;
+        
+        // Wire up the exit request event from display manager
+        _displayManager.ExitRequested += Stop;
     }
 
     private void SubscribeToCallbacks()
@@ -56,13 +60,13 @@ public class SteamFriendsApp : IDisposable
     {
         try
         {
-            Console.WriteLine("Connecting to Steam...");
+            Console.WriteLine(AppConstants.Messages.ConnectingToSteam);
             _steamClient.Connect();
 
             // Wait for connection and authentication to complete before starting GUI
             while (!_appState.IsLoggedIn && _appState.IsRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
             {
-                _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+                _manager.RunWaitCallbacks(AppConstants.Timeouts.CallbackWait);
             }
 
             if (_appState.IsLoggedIn && _appState.IsRunning)
@@ -76,11 +80,11 @@ public class SteamFriendsApp : IDisposable
 
                 while (_appState.IsRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
                 {
-                    _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+                    _manager.RunWaitCallbacks(AppConstants.Timeouts.CallbackWait);
                 }
 
                 _displayManager.Stop();
-                guiTask.Wait(TimeSpan.FromSeconds(2)); // Give GUI time to close
+                guiTask.Wait(AppConstants.Timeouts.GuiShutdown); // Give GUI time to close
             }
         }
         catch (Exception ex)
@@ -102,7 +106,7 @@ public class SteamFriendsApp : IDisposable
             authSession.ChallengeURLChanged = () =>
             {
                 Console.WriteLine();
-                Console.WriteLine("Steam has refreshed the challenge url");
+                Console.WriteLine(AppConstants.Messages.SteamRefreshChallenge);
                 AuthenticationHelper.DrawQRCode(authSession);
             };
 
@@ -140,6 +144,7 @@ public class SteamFriendsApp : IDisposable
     public void Dispose()
     {
         _displayManager.AppInfoRequested -= _callbackHandler.RequestAppInfo;
+        _displayManager.ExitRequested -= Stop;
         _steamClient?.Disconnect();
         _displayManager?.Dispose();
         _cancellationTokenSource?.Dispose();

@@ -1,5 +1,4 @@
 using SteamKit2;
-using SteamFriendsCLI.Constants;
 
 namespace SteamFriendsCLI.Services;
 
@@ -18,21 +17,6 @@ public static class PersonaStateHelper
             EPersonaState.LookingToPlay => "Looking",
             EPersonaState.Invisible => "Invisible",
             _ => "Unknown"
-        };
-    }
-
-    public static string GetPersonaStateColor(EPersonaState state)
-    {
-        return state switch
-        {
-            EPersonaState.Online => DisplayConstants.Colors.GREEN,
-            EPersonaState.Busy => DisplayConstants.Colors.RED,
-            EPersonaState.Away => DisplayConstants.Colors.YELLOW,
-            EPersonaState.Snooze => DisplayConstants.Colors.MAGENTA,
-            EPersonaState.LookingToTrade => DisplayConstants.Colors.CYAN,
-            EPersonaState.LookingToPlay => DisplayConstants.Colors.BLUE,
-            EPersonaState.Invisible => DisplayConstants.Colors.DARK_GRAY,
-            _ => DisplayConstants.Colors.WHITE
         };
     }
 
@@ -68,5 +52,33 @@ public static class PersonaStateHelper
             return $"{(int)(timeDiff.TotalDays / 30)} month{((int)(timeDiff.TotalDays / 30) == 1 ? "" : "s")} ago";
         else
             return $"{(int)(timeDiff.TotalDays / 365)} year{((int)(timeDiff.TotalDays / 365) == 1 ? "" : "s")} ago";
+    }
+
+    /// <summary>
+    /// Gets formatted last seen text for a given DateTime, handling the time difference calculation
+    /// </summary>
+    public static string GetFormattedLastSeenText(DateTime lastSeen)
+    {
+        if (lastSeen == DateTime.MinValue)
+            return "Unknown";
+            
+        var timeDiff = DateTime.Now - lastSeen;
+        return GetLastSeenText(timeDiff);
+    }
+
+    /// <summary>
+    /// Creates a complete status text with last seen information for offline users
+    /// </summary>
+    public static string GetCompleteStatusText(EPersonaState state, DateTime lastSeen)
+    {
+        var baseStatus = GetPersonaStateText(state);
+        
+        if (state == EPersonaState.Offline && lastSeen != DateTime.MinValue)
+        {
+            var lastSeenText = GetFormattedLastSeenText(lastSeen);
+            return $"Last online {lastSeenText}";
+        }
+        
+        return baseStatus;
     }
 }

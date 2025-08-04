@@ -2,6 +2,7 @@ using SteamKit2;
 using SteamFriendsCLI.Models;
 using SteamFriendsCLI.Display;
 using SteamFriendsCLI.Services;
+using SteamFriendsCLI.Constants;
 
 namespace SteamFriendsCLI.Handlers;
 
@@ -12,7 +13,7 @@ public class SteamCallbackHandler
     private readonly SteamFriends _steamFriends;
     private readonly SteamApps _steamApps;
     private readonly AppState _appState;
-    private readonly TerminalGuiDisplayManager _displayManager;
+    private readonly IFriendsDisplayManager _displayManager;
 
     public SteamCallbackHandler(
         SteamClient steamClient,
@@ -20,7 +21,7 @@ public class SteamCallbackHandler
         SteamFriends steamFriends,
         SteamApps steamApps,
         AppState appState,
-        TerminalGuiDisplayManager displayManager)
+        IFriendsDisplayManager displayManager)
     {
         _steamClient = steamClient;
         _steamUser = steamUser;
@@ -32,7 +33,7 @@ public class SteamCallbackHandler
 
     public void OnDisconnected(SteamClient.DisconnectedCallback callback)
     {
-        Console.WriteLine("Disconnected from Steam");
+        Console.WriteLine(AppConstants.Messages.DisconnectedFromSteam);
         _appState.IsRunning = false;
     }
 
@@ -45,7 +46,7 @@ public class SteamCallbackHandler
             return;
         }
         
-        Console.WriteLine("Successfully logged on!");
+        Console.WriteLine(AppConstants.Messages.SuccessfullyLoggedOn);
         _appState.IsLoggedIn = true;
     }
 
@@ -89,30 +90,24 @@ public class SteamCallbackHandler
     {
         _appState.FriendsListReceived = true;
 
-        for (int i = 0; i < _steamFriends.GetFriendCount(); i++)
+        SteamFriendsIterator.ForEachFriendOfType(_steamFriends, EFriendRelationship.Friend, steamIdFriend =>
         {
-            SteamID steamIdFriend = _steamFriends.GetFriendByIndex(i);
-            EFriendRelationship relationship = _steamFriends.GetFriendRelationship(steamIdFriend);
-
-            if (relationship == EFriendRelationship.Friend)
-            {
-                _steamFriends.RequestFriendInfo(steamIdFriend,
-                    EClientPersonaStateFlag.PlayerName |
-                    EClientPersonaStateFlag.Presence |
-                    EClientPersonaStateFlag.LastSeen |
-                    EClientPersonaStateFlag.RichPresence |
-                    EClientPersonaStateFlag.Status |
-                    EClientPersonaStateFlag.GameExtraInfo |
-                    EClientPersonaStateFlag.GameDataBlob |
-                    EClientPersonaStateFlag.Watching |
-                    EClientPersonaStateFlag.Broadcast |
-                    EClientPersonaStateFlag.ClanData |
-                    EClientPersonaStateFlag.UserClanRank |
-                    EClientPersonaStateFlag.SourceID |
-                    EClientPersonaStateFlag.QueryPort |
-                    EClientPersonaStateFlag.Facebook);
-            }
-        }
+            _steamFriends.RequestFriendInfo(steamIdFriend,
+                EClientPersonaStateFlag.PlayerName |
+                EClientPersonaStateFlag.Presence |
+                EClientPersonaStateFlag.LastSeen |
+                EClientPersonaStateFlag.RichPresence |
+                EClientPersonaStateFlag.Status |
+                EClientPersonaStateFlag.GameExtraInfo |
+                EClientPersonaStateFlag.GameDataBlob |
+                EClientPersonaStateFlag.Watching |
+                EClientPersonaStateFlag.Broadcast |
+                EClientPersonaStateFlag.ClanData |
+                EClientPersonaStateFlag.UserClanRank |
+                EClientPersonaStateFlag.SourceID |
+                EClientPersonaStateFlag.QueryPort |
+                EClientPersonaStateFlag.Facebook);
+        });
     }
 
     public void OnPersonaState(SteamFriends.PersonaStateCallback callback)
@@ -200,7 +195,7 @@ public class SteamCallbackHandler
         if (!_appState.ContainsApp(appId))
         {
             // Add placeholder to prevent duplicate requests
-            _appState.UpdateAppName(appId, "Loading...");
+            _appState.UpdateAppName(appId, AppConstants.LoadingText.Generic);
             
             var request = new SteamApps.PICSRequest(appId);
             _steamApps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, new List<SteamApps.PICSRequest>());
