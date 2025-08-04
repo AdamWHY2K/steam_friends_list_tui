@@ -34,6 +34,9 @@ public class SteamFriendsApp : IDisposable
         _cancellationTokenSource = new CancellationTokenSource();
 
         SubscribeToCallbacks();
+        
+        // Wire up the app info request event from display manager to callback handler
+        _displayManager.AppInfoRequested += _callbackHandler.RequestAppInfo;
     }
 
     private void SubscribeToCallbacks()
@@ -136,6 +139,7 @@ public class SteamFriendsApp : IDisposable
 
     public void Dispose()
     {
+        _displayManager.AppInfoRequested -= _callbackHandler.RequestAppInfo;
         _steamClient?.Disconnect();
         _displayManager?.Dispose();
         _cancellationTokenSource?.Dispose();

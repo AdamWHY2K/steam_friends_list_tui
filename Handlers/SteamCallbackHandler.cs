@@ -195,10 +195,13 @@ public class SteamCallbackHandler
         _appState.IsRunning = false;
     }
 
-    private void RequestAppInfo(uint appId)
+    public void RequestAppInfo(uint appId)
     {
         if (!_appState.ContainsApp(appId))
         {
+            // Add placeholder to prevent duplicate requests
+            _appState.UpdateAppName(appId, "Loading...");
+            
             var request = new SteamApps.PICSRequest(appId);
             _steamApps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, new List<SteamApps.PICSRequest>());
         }

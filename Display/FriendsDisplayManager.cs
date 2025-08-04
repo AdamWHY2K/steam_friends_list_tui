@@ -9,6 +9,9 @@ namespace SteamFriendsCLI.Display;
 public class FriendsDisplayManager : IFriendsDisplayManager
 {
     private readonly AppState _appState;
+    
+    // Event for requesting app info when game names are not cached
+    public event Action<uint>? AppInfoRequested;
 
     public FriendsDisplayManager(AppState appState)
     {
@@ -210,8 +213,9 @@ public class FriendsDisplayManager : IFriendsDisplayManager
             }
             else
             {
-                // App info will be requested by the callback handler
-                return ($"{baseStatus} - Game ID: {gameId.AppID}", $"Game ID: {gameId.AppID}");
+                // Request app info for this game
+                AppInfoRequested?.Invoke(gameId.AppID);
+                return ($"{baseStatus} - Loading game name...", "Loading...");
             }
         }
 
