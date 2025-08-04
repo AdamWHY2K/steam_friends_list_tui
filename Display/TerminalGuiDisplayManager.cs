@@ -28,6 +28,11 @@ public class TerminalGuiDisplayManager : IDisposable
             return;
 
         Application.Init();
+        Colors.Base.Normal = new Terminal.Gui.Attribute(Color.White, Color.Black);
+        Colors.Base.Focus = new Terminal.Gui.Attribute(Color.BrightYellow, Color.Black);
+        Colors.Base.HotNormal = new Terminal.Gui.Attribute(Color.BrightCyan, Color.Black);
+        Colors.Base.HotFocus = new Terminal.Gui.Attribute(Color.BrightBlue, Color.Black);
+        Colors.Base.Disabled = new Terminal.Gui.Attribute(Color.Gray, Color.Black);
 
         _mainWindow = new Window("Steam Friends CLI")
         {
