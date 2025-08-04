@@ -1,0 +1,122 @@
+using SteamKit2;
+using SteamKit2.Authentication;
+using SteamFriendsCLI.Models;
+using SteamFriendsCLI.Display;
+using SteamFriendsCLI.Handlers;
+using SteamFriendsCLI.Services;
+
+namespace SteamFriendsCLI;
+
+public class SteamFriendsApp : IDisposable
+{
+    private readonly SteamClient _steamClient;
+    private readonly CallbackManager _manager;
+    private readonly SteamUser _steamUser;
+    private readonly SteamFriends _steamFriends;
+    private readonly SteamApps _steamApps;
+    private readonly AppState _appState;
+    private readonly FriendsDisplayManager _displayManager;
+    private readonly SteamCallbackHandler _callbackHandler;
+    private readonly CancellationTokenSource _cancellationTokenSource;
+
+    public SteamFriendsApp()
+    {
+        _steamClient = new SteamClient();
+        _manager = new CallbackManager(_steamClient);
+        
+        _steamUser = _steamClient.GetHandler<SteamUser>() ?? throw new InvalidOperationException("Failed to get SteamUser handler");
+        _steamFriends = _steamClient.GetHandler<SteamFriends>() ?? throw new InvalidOperationException("Failed to get SteamFriends handler");
+        _steamApps = _steamClient.GetHandler<SteamApps>() ?? throw new InvalidOperationException("Failed to get SteamApps handler");
+        
+        _appState = new AppState();
+        _displayManager = new FriendsDisplayManager(_appState);
+        _callbackHandler = new SteamCallbackHandler(_steamClient, _steamUser, _steamFriends, _steamApps, _appState, _displayManager);
+        _cancellationTokenSource = new CancellationTokenSource();
+
+        SubscribeToCallbacks();
+    }
+
+    private void SubscribeToCallbacks()
+    {
+        _manager.Subscribe<SteamClient.ConnectedCallback>(OnConnected);
+        _manager.Subscribe<SteamClient.DisconnectedCallback>(_callbackHandler.OnDisconnected);
+        _manager.Subscribe<SteamUser.LoggedOnCallback>(_callbackHandler.OnLoggedOn);
+        _manager.Subscribe<SteamUser.LoggedOffCallback>(_callbackHandler.OnLoggedOff);
+        _manager.Subscribe<SteamUser.AccountInfoCallback>(_callbackHandler.OnAccountInfo);
+        _manager.Subscribe<SteamUser.PlayingSessionStateCallback>(_callbackHandler.OnPlayingSession);
+        _manager.Subscribe<SteamFriends.FriendsListCallback>(_callbackHandler.OnFriendsList);
+        _manager.Subscribe<SteamFriends.PersonaStateCallback>(_callbackHandler.OnPersonaState);
+        _manager.Subscribe<SteamApps.PICSProductInfoCallback>(_callbackHandler.OnPICSProductInfo);
+    }
+
+    public void Run()
+    {
+        try
+        {
+            Console.WriteLine("Connecting to Steam...");
+            _steamClient.Connect();
+
+            while (_appState.IsRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
+            {
+                _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+        }
+        finally
+        {
+            Dispose();
+        }
+    }
+
+    private async Task OnConnectedAsync(SteamClient.ConnectedCallback callback)
+    {
+        try
+        {
+            var authSession = await _steamClient.Authentication.BeginAuthSessionViaQRAsync(new AuthSessionDetails());
+
+            authSession.ChallengeURLChanged = () =>
+            {
+                Console.WriteLine();
+                Console.WriteLine("Steam has refreshed the challenge url");
+                AuthenticationHelper.DrawQRCode(authSession);
+            };
+
+            AuthenticationHelper.DrawQRCode(authSession);
+
+            var pollResponse = await authSession.PollingWaitForResultAsync();
+
+            Console.WriteLine($"Logging in as '{pollResponse.AccountName}'...");
+
+            _steamUser.LogOn(new SteamUser.LogOnDetails
+            {
+                Username = pollResponse.AccountName,
+                AccessToken = pollResponse.RefreshToken,
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Authentication failed: {ex.Message}");
+            _appState.IsRunning = false;
+        }
+    }
+
+    private void OnConnected(SteamClient.ConnectedCallback callback)
+    {
+        _ = Task.Run(async () => await OnConnectedAsync(callback));
+    }
+
+    public void Stop()
+    {
+        _appState.IsRunning = false;
+        _cancellationTokenSource.Cancel();
+    }
+
+    public void Dispose()
+    {
+        _steamClient?.Disconnect();
+        _cancellationTokenSource?.Dispose();
+    }
+}
