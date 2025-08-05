@@ -14,6 +14,9 @@ public class SteamCallbackHandler
     private readonly SteamApps _steamApps;
     private readonly AppState _appState;
     private readonly IFriendsDisplayManager _displayManager;
+    
+    // Event for authentication failure (e.g., expired tokens)
+    public event Action? AuthenticationFailed;
 
     public SteamCallbackHandler(
         SteamClient steamClient,
@@ -42,6 +45,19 @@ public class SteamCallbackHandler
         if (callback.Result != EResult.OK)
         {
             Console.WriteLine("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult);
+            
+            // Check if this is an authentication failure that might benefit from re-authentication
+            if (callback.Result == EResult.AccessDenied || 
+                callback.Result == EResult.InvalidLoginAuthCode || 
+                callback.Result == EResult.AccountLoginDeniedNeedTwoFactor ||
+                callback.Result == EResult.InvalidPassword)
+            {
+                Console.WriteLine("Authentication tokens may be expired. Clearing saved tokens...");
+                TokenStorage.DeleteAuthTokens();
+                AuthenticationFailed?.Invoke();
+                return;
+            }
+            
             _appState.IsRunning = false;
             return;
         }

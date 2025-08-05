@@ -34,5 +34,8 @@ public static class AppConstants
         public const string UseQrCode = "Use the Steam Mobile App to sign in via QR code:";
         public const string DisconnectedFromSteam = "Disconnected from Steam";
         public const string SuccessfullyLoggedOn = "Successfully logged on!";
+        public const string UsingSavedAuth = "Using saved authentication credentials...";
+        public const string AuthTokensExpired = "Saved authentication tokens have expired. Please authenticate again.";
+        public const string QRCodeAuthRequired = "QR Code authentication required. Please scan the code with your Steam Mobile app.";
     }
 }
