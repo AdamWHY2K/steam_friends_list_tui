@@ -16,6 +16,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
     private readonly object _friendsListLock = new();
     
     private List<FriendInfo> _currentFriendsList = new();
+    private (int friends, int blocked, int pending) _currentCounts = (0, 0, 0);
     private bool _isInitialized = false;
     private volatile bool _isRunning = false;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
@@ -59,7 +60,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         try
         {
             AnsiConsole.Clear();
-            AnsiConsole.MarkupLine("[bold cyan]Steam Friends CLI[/] - Initializing interface...");
+            AnsiConsole.MarkupLine("[bold cyan]Steam Friends List CLI[/] - Initializing interface...");
             _isInitialized = true;
             _logger.LogInfo("Display manager initialized successfully");
         }
@@ -180,12 +181,10 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
         try
         {
-            var (actualFriendCount, blockedCount, pendingCount) = _friendsBuilder.CountRelationships(steamFriends);
-            _logger.LogDebug($"Friends count: {actualFriendCount}, Blocked: {blockedCount}, Pending: {pendingCount}");
-
+            _currentCounts = _friendsBuilder.CountRelationships(steamFriends);
             List<FriendInfo> newFriendsList;
 
-            if (actualFriendCount == 0)
+            if (_currentCounts.friends == 0)
             {
                 newFriendsList = new List<FriendInfo>
                 {
@@ -265,27 +264,67 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         {
             AnsiConsole.Clear();
             
-            // Create the main layout
-            var layout = new Layout("Root")
-                .SplitRows(
-                    new Layout("Header").Size(AppConstants.Display.HeaderSectionSize),
-                    new Layout("Content")
-                );
+            // Create content with header info and friends list together
+            var content = CreateCombinedContentPanel();
 
-            // Header section with user info
-            var headerPanel = CreateHeaderPanel();
-            layout["Header"].Update(headerPanel);
+            // Wrap everything in the cyan border  
+            var mainPanel = new Panel(content)
+                .Header("[bold cyan]Steam Friends List CLI[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderStyle(Style.Parse("cyan"))
+                .Padding(1, 0);
 
-            // Content section with friends list
-            var contentPanel = CreateFriendsPanel();
-            layout["Content"].Update(contentPanel);
-
-            AnsiConsole.Write(layout);
+            AnsiConsole.Write(mainPanel);
         }
         catch (Exception ex)
         {
             _logger.LogError("Error updating display", ex);
         }
+    }
+
+    private Grid CreateCombinedContentPanel()
+    {
+        try
+        {
+            var grid = new Grid()
+                .AddColumn()
+                .AddRow(CreateHeaderSection())
+                .AddRow(CreateFriendsSection());
+
+            return grid;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error creating combined content panel", ex);
+            return new Grid()
+                .AddColumn()
+                .AddRow(CreateErrorPanel("Error loading content"));
+        }
+    }
+
+    private Markup CreateHeaderSection()
+    {
+        try
+        {
+            var userInfo = SpectreDisplayFormatter.FormatUserInfo(_appState);
+            var countsInfo = $"Friends: [green]{_currentCounts.friends}[/]  Pending: [yellow]{_currentCounts.pending}[/]  Blocked: [red]{_currentCounts.blocked}[/]";
+            var headerContent = $"{countsInfo}\n{userInfo}";
+            return new Markup(headerContent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error creating header section", ex);
+            return new Markup("[red]Error loading user info[/]");
+        }
+    }
+
+    private Panel CreateErrorPanel(string errorMessage)
+    {
+        return new Panel(new Markup($"[red]{errorMessage}[/]"))
+            .Header("[bold red]Steam Friends List CLI[/]")
+            .Border(BoxBorder.Rounded)
+            .BorderStyle(Style.Parse("red"))
+            .Padding(1, 0);
     }
 
     private Panel CreateHeaderPanel()
@@ -295,17 +334,64 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             var userInfo = SpectreDisplayFormatter.FormatUserInfo(_appState);
 
             return new Panel(new Markup(userInfo))
-                .Header("[bold cyan]Steam Friends CLI[/]")
+                .Header("[bold cyan]Steam Friends List CLI[/]")
                 .Border(BoxBorder.Rounded)
                 .BorderStyle(Style.Parse("cyan"));
         }
         catch (Exception ex)
         {
             _logger.LogError("Error creating header panel", ex);
-            return new Panel(new Markup("[red]Error loading user info[/]"))
-                .Header("[bold cyan]Steam Friends CLI[/]")
-                .Border(BoxBorder.Rounded)
-                .BorderStyle(Style.Parse("cyan"));
+            return CreateErrorPanel("Error loading user info");
+        }
+    }
+    private Grid CreateFriendsSection()
+    {
+        try
+        {
+            List<FriendInfo> currentFriends;
+            lock (_friendsListLock)
+            {
+                currentFriends = new List<FriendInfo>(_currentFriendsList);
+            }
+
+            if (currentFriends.Count == 0)
+            {
+                return new Grid()
+                    .AddColumn()
+                    .AddRow(new Markup("[yellow]Loading friends list...[/]\n[dim]Please wait while Steam loads your friends data[/]"));
+            }
+
+            var table = new Table()
+                .Border(TableBorder.None)
+                .AddColumn(new TableColumn("Friend").NoWrap())
+                .HideHeaders();
+
+            var displayFriends = currentFriends.ToList();
+
+            foreach (var friend in displayFriends)
+            {
+                var nameMarkup = SpectreDisplayFormatter.FormatFriendName(friend);
+                var statusMarkup = SpectreDisplayFormatter.FormatFriendStatus(friend);
+
+                // Add friend name and status on separate lines with indentation
+                var friendDisplay = $"{nameMarkup}\n  {statusMarkup}";
+                table.AddRow(friendDisplay);
+            }
+
+            // Add a separator line
+            var content = new Grid()
+                .AddColumn()
+                .AddRow(new Rule().RuleStyle(Style.Parse("cyan")))
+                .AddRow(table);
+
+            return content;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error creating friends section", ex);
+            return new Grid()
+                .AddColumn()
+                .AddRow(CreateErrorPanel("Error loading friends list"));
         }
     }
 
@@ -349,21 +435,15 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
                 }
             }
 
-            var friendsCount = currentFriends.Count(f => f.SteamId.ConvertToUInt64() != 0);
-            var header = friendsCount > 0 ? $"[bold]Friends ({friendsCount})[/]" : "[bold]Friends[/]";
 
             return new Panel(table)
-                .Header(header)
                 .Border(BoxBorder.Rounded)
                 .Padding(1, 0);
         }
         catch (Exception ex)
         {
             _logger.LogError("Error creating friends panel", ex);
-            return new Panel(new Markup("[red]Error loading friends list[/]"))
-                .Header("[bold]Friends[/]")
-                .Border(BoxBorder.Rounded)
-                .Padding(1, 0);
+            return CreateErrorPanel("Error loading friends");
         }
     }
 
