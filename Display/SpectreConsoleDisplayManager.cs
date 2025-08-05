@@ -38,6 +38,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         
         // Wire up events
         _inputHandler.ExitRequested += () => ExitRequested?.Invoke();
+        _inputHandler.ConsoleResized += OnConsoleResized;
         _stateManager.AppInfoRequested += (appId) => AppInfoRequested?.Invoke(appId);
     }
 
@@ -119,6 +120,18 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         _renderer.RenderToConsole();
     }
 
+    private void OnConsoleResized()
+    {
+        if (!_isInitialized)
+        {
+            _logger.LogWarning("OnConsoleResized called before initialization");
+            return;
+        }
+
+        _logger.LogDebug("Console resize detected - refreshing display");
+        RefreshDisplay();
+    }
+
     public void Run()
     {
         if (!_isInitialized)
@@ -176,8 +189,23 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         try
         {
             Stop();
+            
+            // Unsubscribe from events
+            if (_inputHandler != null)
+            {
+                _inputHandler.ExitRequested -= () => ExitRequested?.Invoke();
+                _inputHandler.ConsoleResized -= OnConsoleResized;
+            }
+            
             _inputHandler?.Dispose();
-            _cancellationTokenSource?.Cancel();
+            try
+            {
+                _cancellationTokenSource?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed, ignore
+            }
             _cancellationTokenSource?.Dispose();
             _logger.LogInfo("Display manager disposed successfully");
         }
