@@ -30,7 +30,7 @@ public class SteamFriendsApp : IDisposable
         _steamApps = _steamClient.GetHandler<SteamApps>() ?? throw new InvalidOperationException("Failed to get SteamApps handler");
         
         _appState = new AppState();
-        _displayManager = new TerminalGuiDisplayManager(_appState);
+        _displayManager = new SpectreConsoleDisplayManager(_appState);
         _callbackHandler = new SteamCallbackHandler(_steamClient, _steamUser, _steamFriends, _steamApps, _appState, _displayManager);
         _cancellationTokenSource = new CancellationTokenSource();
 
@@ -71,20 +71,33 @@ public class SteamFriendsApp : IDisposable
 
             if (_appState.IsLoggedIn && _appState.IsRunning)
             {
-                // Initialize and run Terminal.Gui interface
+                // Initialize and run Spectre.Console interface
                 _displayManager.Initialize();
                 _displayManager.UpdateConnectionStatus("Connected to Steam - Loading friends list...");
                 
-                // Start the GUI in a separate task
-                var guiTask = Task.Run(() => _displayManager.Run());
+                // Give some time for initial friends list to load
+                var friendsLoadTimeout = DateTime.Now.AddSeconds(10);
+                while (!_appState.FriendsListReceived && DateTime.Now < friendsLoadTimeout && _appState.IsRunning)
+                {
+                    _manager.RunWaitCallbacks(AppConstants.Timeouts.CallbackWait);
+                }
+                
+                // Display initial friends list if available
+                if (_appState.FriendsListReceived)
+                {
+                    _displayManager.DisplayFriendsList(_steamFriends);
+                }
+                
+                // Start the display manager
+                _displayManager.Run();
 
+                // Keep processing callbacks while running
                 while (_appState.IsRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
                 {
                     _manager.RunWaitCallbacks(AppConstants.Timeouts.CallbackWait);
                 }
 
                 _displayManager.Stop();
-                guiTask.Wait(AppConstants.Timeouts.GuiShutdown); // Give GUI time to close
             }
         }
         catch (Exception ex)
