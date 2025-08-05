@@ -6,6 +6,7 @@ public interface IFriendsDisplayManager : IDisposable
 {
     void DisplayFriendsList(SteamFriends? steamFriends);
     void UpdateConnectionStatus(string status);
+    void RefreshDisplay();
     void Initialize();
     void Run();
     void Stop();

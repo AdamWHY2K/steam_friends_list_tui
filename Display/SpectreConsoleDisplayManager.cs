@@ -19,7 +19,6 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
     private bool _isInitialized = false;
     private volatile bool _isRunning = false;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private Task? _displayUpdateTask;
     
     // Event for requesting app info when game names are not cached
     public event Action<uint>? AppInfoRequested;
@@ -81,6 +80,8 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         
         _logger.LogDebug("DisplayFriendsList called - updating friends list");
         UpdateFriendsList(steamFriends);
+        // Trigger immediate display update when friends list changes
+        UpdateDisplay();
     }
 
     public void UpdateConnectionStatus(string status)
@@ -92,8 +93,23 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         }
 
         _logger.LogInfo($"Connection status updated: {status}");
-        // Trigger a display update to show the new status
-        // Note: The status should be stored in AppState for display
+        // Trigger immediate display update when connection status changes
+        UpdateDisplay();
+    }
+
+    /// <summary>
+    /// Triggers a display refresh. Call this when AppState data has changed 
+    /// (e.g., user persona state, current game, etc.)
+    /// </summary>
+    public void RefreshDisplay()
+    {
+        if (!_isInitialized)
+        {
+            _logger.LogWarning("RefreshDisplay called before initialization");
+            return;
+        }
+
+        _logger.LogDebug("Display refresh requested");
         UpdateDisplay();
     }
 
@@ -116,9 +132,6 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             // Initial display
             UpdateDisplay();
             
-            // Start the display update task
-            _displayUpdateTask = StartDisplayUpdateLoop();
-            
             // Start the input handler
             _inputHandler.Start();
             
@@ -130,35 +143,6 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             Stop();
             throw;
         }
-    }
-
-    private Task StartDisplayUpdateLoop()
-    {
-        return Task.Run(async () =>
-        {
-            _logger.LogDebug("Display update loop started");
-            
-            while (_isRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
-            {
-                try
-                {
-                    UpdateDisplay();
-                    await Task.Delay(AppConstants.Timeouts.DisplayUpdateInterval, _cancellationTokenSource.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    _logger.LogDebug("Display update loop cancelled");
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("Error in display update loop", ex);
-                    // Continue the loop to prevent crashes
-                }
-            }
-            
-            _logger.LogDebug("Display update loop ended");
-        }, _cancellationTokenSource.Token);
     }
 
     public void Stop()
@@ -177,14 +161,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             _cancellationTokenSource.Cancel();
             _inputHandler.Stop();
             
-            // Wait for display update task to complete
-            if (_displayUpdateTask != null)
-            {
-                _displayUpdateTask.Wait(AppConstants.Timeouts.GuiShutdown);
-            }
-            
             AnsiConsole.Clear();
-            AnsiConsole.MarkupLine("[bold green]Steam Friends CLI[/] - Goodbye!");
             _logger.LogInfo("Display manager stopped successfully");
         }
         catch (Exception ex)
@@ -292,8 +269,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             var layout = new Layout("Root")
                 .SplitRows(
                     new Layout("Header").Size(AppConstants.Display.HeaderSectionSize),
-                    new Layout("Content"),
-                    new Layout("Footer").Size(AppConstants.Display.FooterSectionSize)
+                    new Layout("Content")
                 );
 
             // Header section with user info
@@ -303,10 +279,6 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             // Content section with friends list
             var contentPanel = CreateFriendsPanel();
             layout["Content"].Update(contentPanel);
-
-            // Footer section with controls
-            var footerPanel = CreateFooterPanel();
-            layout["Footer"].Update(footerPanel);
 
             AnsiConsole.Write(layout);
         }
@@ -361,7 +333,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
                 .AddColumn(new TableColumn("Status"))
                 .HideHeaders();
 
-            var displayFriends = currentFriends.Take(AppConstants.Display.MaxFriendsDisplayed).ToList();
+            var displayFriends = currentFriends.ToList();
             
             if (displayFriends.Count == 0)
             {
@@ -395,13 +367,6 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         }
     }
 
-    private Panel CreateFooterPanel()
-    {
-        return new Panel(new Markup("[dim]Press [bold yellow]Q[/] or [bold yellow]ESC[/] to quit[/]"))
-            .Border(BoxBorder.None)
-            .Padding(0, 0);
-    }
-
     public void Dispose()
     {
         try
@@ -410,7 +375,6 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             _inputHandler?.Dispose();
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
-            _displayUpdateTask?.Dispose();
             _logger.LogInfo("Display manager disposed successfully");
         }
         catch (Exception ex)
