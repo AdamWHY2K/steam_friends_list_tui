@@ -44,6 +44,8 @@ public class TerminalGuiDisplayManager : IFriendsDisplayManager
         _uiManager.InitializeComponents();
         _eventHandler.SetupEventHandlers(_uiManager);
         
+        Application.Top.Width = Dim.Fill();
+        Application.Top.Height = Dim.Fill();
         Application.Top.Add(_uiManager.MainWindow);
         
         _isInitialized = true;

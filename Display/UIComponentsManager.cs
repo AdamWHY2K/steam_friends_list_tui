@@ -58,7 +58,7 @@ public class UIComponentsManager
         _userLabel = new Label("Loading user info...")
         {
             X = 1,
-            Y = 1,
+            Y = 2,
             Width = Dim.Fill() - 2,
             Height = 1
         };
@@ -71,8 +71,8 @@ public class UIComponentsManager
         {
             X = 1,
             Y = 3,
-            Width = Dim.Fill() - 2,
-            Height = Dim.Fill() - 6
+            Width = Dim.Fill(),
+            Height = Dim.Fill()
         };
 
         _friendsDataSource = new FriendsListDataSource();
@@ -100,7 +100,7 @@ public class UIComponentsManager
         _statusLabel = new Label("Connecting to Steam...")
         {
             X = 1,
-            Y = 2,
+            Y = 0,
             Width = Dim.Fill() - 2,
             Height = 1
         };
