@@ -17,6 +17,16 @@ public static class AppConstants
     {
         public static readonly TimeSpan CallbackWait = TimeSpan.FromSeconds(1);
         public static readonly TimeSpan GuiShutdown = TimeSpan.FromSeconds(2);
+        public static readonly TimeSpan DisplayUpdateInterval = TimeSpan.FromSeconds(1);
+        public static readonly TimeSpan InputCheckInterval = TimeSpan.FromMilliseconds(100);
+    }
+
+    // Display constants
+    public static class Display
+    {
+        public const int MaxFriendsDisplayed = 20;
+        public const int HeaderSectionSize = 4;
+        public const int FooterSectionSize = 2;
     }
 
     // UI Messages

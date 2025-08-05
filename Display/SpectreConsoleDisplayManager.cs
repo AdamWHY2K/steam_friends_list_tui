@@ -11,11 +11,15 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 {
     private readonly AppState _appState;
     private readonly FriendsListBuilder _friendsBuilder;
+    private readonly ILogger _logger;
+    private readonly ConsoleInputHandler _inputHandler;
+    private readonly object _friendsListLock = new();
     
     private List<FriendInfo> _currentFriendsList = new();
     private bool _isInitialized = false;
-    private bool _isRunning = false;
+    private volatile bool _isRunning = false;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private Task? _displayUpdateTask;
     
     // Event for requesting app info when game names are not cached
     public event Action<uint>? AppInfoRequested;
@@ -23,50 +27,73 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
     // Event for requesting application exit
     public event Action? ExitRequested;
 
-    public SpectreConsoleDisplayManager(AppState appState)
+    public SpectreConsoleDisplayManager(AppState appState, ILogger? logger = null)
     {
-        _appState = appState;
+        _appState = appState ?? throw new ArgumentNullException(nameof(appState));
         _friendsBuilder = new FriendsListBuilder(appState);
+        _logger = logger ?? new ConsoleLogger();
+        _inputHandler = new ConsoleInputHandler(_logger);
+        
+        // Wire up input handler events
+        _inputHandler.ExitRequested += () => ExitRequested?.Invoke();
     }
 
     public void Initialize()
     {
         if (_isInitialized)
+        {
+            _logger.LogWarning("Display manager is already initialized");
             return;
+        }
 
-        // Try to disable mouse events to prevent input issues
         try
         {
+            // Try to disable mouse events to prevent input issues
             Console.TreatControlCAsInput = true;
+            _logger.LogDebug("Console.TreatControlCAsInput set to true");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Ignore if we can't set this
+            _logger.LogWarning($"Could not set Console.TreatControlCAsInput: {ex.Message}");
         }
 
-        AnsiConsole.Clear();
-        AnsiConsole.MarkupLine("[bold cyan]Steam Friends CLI[/] - Initializing interface...");
-        _isInitialized = true;
+        try
+        {
+            AnsiConsole.Clear();
+            AnsiConsole.MarkupLine("[bold cyan]Steam Friends CLI[/] - Initializing interface...");
+            _isInitialized = true;
+            _logger.LogInfo("Display manager initialized successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to initialize display manager", ex);
+            throw;
+        }
     }
 
     public void DisplayFriendsList(SteamFriends? steamFriends)
     {
         if (steamFriends == null)
         {
-            Console.WriteLine("DisplayFriendsList called with null steamFriends");
+            _logger.LogWarning("DisplayFriendsList called with null steamFriends");
             return;
         }
         
-        Console.WriteLine("DisplayFriendsList called - updating friends list");
+        _logger.LogDebug("DisplayFriendsList called - updating friends list");
         UpdateFriendsList(steamFriends);
     }
 
     public void UpdateConnectionStatus(string status)
     {
         if (!_isInitialized)
+        {
+            _logger.LogWarning("UpdateConnectionStatus called before initialization");
             return;
+        }
 
-        // Update status in the live display
+        _logger.LogInfo($"Connection status updated: {status}");
+        // Trigger a display update to show the new status
+        // Note: The status should be stored in AppState for display
         UpdateDisplay();
     }
 
@@ -75,87 +102,115 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         if (!_isInitialized)
             throw new InvalidOperationException("SpectreConsoleDisplayManager must be initialized before running");
 
-        _isRunning = true;
-        
-        // Initial display
-        UpdateDisplay();
-        
-        // Start the UI update loop
-        Task.Run(async () =>
+        if (_isRunning)
         {
+            _logger.LogWarning("Display manager is already running");
+            return;
+        }
+
+        _isRunning = true;
+        _logger.LogInfo("Starting display manager");
+        
+        try
+        {
+            // Initial display
+            UpdateDisplay();
+            
+            // Start the display update task
+            _displayUpdateTask = StartDisplayUpdateLoop();
+            
+            // Start the input handler
+            _inputHandler.Start();
+            
+            _logger.LogInfo("Display manager started successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to start display manager", ex);
+            Stop();
+            throw;
+        }
+    }
+
+    private Task StartDisplayUpdateLoop()
+    {
+        return Task.Run(async () =>
+        {
+            _logger.LogDebug("Display update loop started");
+            
             while (_isRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
             {
                 try
                 {
                     UpdateDisplay();
-                    await Task.Delay(1000, _cancellationTokenSource.Token); // Update every 1 second for more responsive updates
+                    await Task.Delay(AppConstants.Timeouts.DisplayUpdateInterval, _cancellationTokenSource.Token);
                 }
                 catch (OperationCanceledException)
                 {
+                    _logger.LogDebug("Display update loop cancelled");
                     break;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // Ignore display update errors to prevent crashes
+                    _logger.LogError("Error in display update loop", ex);
+                    // Continue the loop to prevent crashes
                 }
             }
+            
+            _logger.LogDebug("Display update loop ended");
         }, _cancellationTokenSource.Token);
-
-        // Start the input handling loop in a blocking manner
-        while (_isRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
-        {
-            try
-            {
-                if (Console.KeyAvailable)
-                {
-                    var keyInfo = Console.ReadKey(true);
-                    // Only respond to specific key presses, ignore mouse and other input
-                    if (keyInfo.Key == ConsoleKey.Q || 
-                        keyInfo.Key == ConsoleKey.Escape ||
-                        (keyInfo.KeyChar == 'q' || keyInfo.KeyChar == 'Q'))
-                    {
-                        Console.WriteLine("Exit key pressed - shutting down...");
-                        ExitRequested?.Invoke();
-                        break;
-                    }
-                    // Ignore all other input including mouse movements, function keys, etc.
-                    // Only log if it's a printable character
-                    else if (char.IsControl(keyInfo.KeyChar) == false)
-                    {
-                        // Silently ignore other printable characters
-                    }
-                }
-                Thread.Sleep(100); // Check for input every 100ms
-            }
-            catch (Exception ex)
-            {
-                // Log input handling errors for debugging
-                Console.WriteLine($"Input handling error: {ex.Message}");
-            }
-        }
     }
 
     public void Stop()
     {
+        if (!_isRunning)
+        {
+            _logger.LogWarning("Display manager is not running");
+            return;
+        }
+
+        _logger.LogInfo("Stopping display manager");
         _isRunning = false;
-        _cancellationTokenSource.Cancel();
-        AnsiConsole.Clear();
-        AnsiConsole.MarkupLine("[bold green]Steam Friends CLI[/] - Goodbye!");
+        
+        try
+        {
+            _cancellationTokenSource.Cancel();
+            _inputHandler.Stop();
+            
+            // Wait for display update task to complete
+            if (_displayUpdateTask != null)
+            {
+                _displayUpdateTask.Wait(AppConstants.Timeouts.GuiShutdown);
+            }
+            
+            AnsiConsole.Clear();
+            AnsiConsole.MarkupLine("[bold green]Steam Friends CLI[/] - Goodbye!");
+            _logger.LogInfo("Display manager stopped successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error stopping display manager", ex);
+        }
     }
 
     private void UpdateFriendsList(SteamFriends? steamFriends)
     {
         if (!_isInitialized || steamFriends == null)
+        {
+            _logger.LogWarning("UpdateFriendsList called with invalid state");
             return;
+        }
 
         try
         {
             var (actualFriendCount, blockedCount, pendingCount) = _friendsBuilder.CountRelationships(steamFriends);
-            Console.WriteLine($"Friends count: {actualFriendCount}, Blocked: {blockedCount}, Pending: {pendingCount}");
+            _logger.LogDebug($"Friends count: {actualFriendCount}, Blocked: {blockedCount}, Pending: {pendingCount}");
+
+            List<FriendInfo> newFriendsList;
 
             if (actualFriendCount == 0)
             {
-                _currentFriendsList = new List<FriendInfo>
+                newFriendsList = new List<FriendInfo>
                 {
                     new FriendInfo(
                         new SteamID(0), 
@@ -166,44 +221,62 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
                         DateTime.MinValue
                     )
                 };
-                return;
+            }
+            else
+            {
+                var friendsList = _friendsBuilder.BuildFriendsList(steamFriends);
+                _logger.LogDebug($"Built friends list with {friendsList.Count} friends");
+                
+                ProcessAppInfoRequests(steamFriends, friendsList);
+                
+                newFriendsList = _friendsBuilder.SortFriends(friendsList);
+                _logger.LogDebug($"Sorted friends list with {newFriendsList.Count} friends");
             }
 
-            var friendsList = _friendsBuilder.BuildFriendsList(steamFriends);
-            Console.WriteLine($"Built friends list with {friendsList.Count} friends");
-            
-            ProcessAppInfoRequests(steamFriends, friendsList);
-            
-            var sortedFriends = _friendsBuilder.SortFriends(friendsList);
-            _currentFriendsList = sortedFriends;
-            Console.WriteLine($"Updated current friends list with {_currentFriendsList.Count} friends");
-        }
-        catch (Exception)
-        {
-            // If there's an error building the friends list, show a loading message
-            _currentFriendsList = new List<FriendInfo>
+            // Thread-safe update of friends list
+            lock (_friendsListLock)
             {
-                new FriendInfo(
-                    new SteamID(0), 
-                    "Error loading friends list", 
-                    EPersonaState.Offline, 
-                    "", 
-                    "", 
-                    DateTime.MinValue
-                )
-            };
+                _currentFriendsList = newFriendsList;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error updating friends list", ex);
+            
+            // Create error state friends list
+            lock (_friendsListLock)
+            {
+                _currentFriendsList = new List<FriendInfo>
+                {
+                    new FriendInfo(
+                        new SteamID(0), 
+                        "Error loading friends list", 
+                        EPersonaState.Offline, 
+                        "", 
+                        "", 
+                        DateTime.MinValue
+                    )
+                };
+            }
         }
     }
 
     private void ProcessAppInfoRequests(SteamFriends steamFriends, List<FriendInfo> friendsList)
     {
-        SteamFriendsIterator.ForEachFriendOfType(steamFriends, EFriendRelationship.Friend, steamIdFriend =>
+        try
         {
-            if (_friendsBuilder.NeedsAppInfoRequest(steamFriends, steamIdFriend, out uint appId))
+            SteamFriendsIterator.ForEachFriendOfType(steamFriends, EFriendRelationship.Friend, steamIdFriend =>
             {
-                AppInfoRequested?.Invoke(appId);
-            }
-        });
+                if (_friendsBuilder.NeedsAppInfoRequest(steamFriends, steamIdFriend, out uint appId))
+                {
+                    AppInfoRequested?.Invoke(appId);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error processing app info requests", ex);
+        }
     }
 
     private void UpdateDisplay()
@@ -218,9 +291,9 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             // Create the main layout
             var layout = new Layout("Root")
                 .SplitRows(
-                    new Layout("Header").Size(4),
+                    new Layout("Header").Size(AppConstants.Display.HeaderSectionSize),
                     new Layout("Content"),
-                    new Layout("Footer").Size(2)
+                    new Layout("Footer").Size(AppConstants.Display.FooterSectionSize)
                 );
 
             // Header section with user info
@@ -237,74 +310,89 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
             AnsiConsole.Write(layout);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Ignore display update errors to prevent crashes
+            _logger.LogError("Error updating display", ex);
         }
     }
 
     private Panel CreateHeaderPanel()
     {
-        var userInfo = new StringBuilder();
-        userInfo.Append($"❯ {_appState.CurrentPersonaName ?? "Loading..."}");
-        
-        var stateText = PersonaStateHelper.GetPersonaStateText(_appState.CurrentUserState);
-        var stateColor = GetSpectreColorForPersonaState(_appState.CurrentUserState);
-        
-        if (!string.IsNullOrEmpty(_appState.CurrentGame))
+        try
         {
-            userInfo.Append($" - [green]{_appState.CurrentGame}[/]");
-        }
-        else
-        {
-            userInfo.Append($" - [{stateColor}]{stateText}[/]");
-        }
+            var userInfo = SpectreDisplayFormatter.FormatUserInfo(_appState);
 
-        return new Panel(new Markup(userInfo.ToString()))
-            .Header("[bold cyan]Steam Friends CLI[/]")
-            .Border(BoxBorder.Rounded)
-            .BorderStyle(Style.Parse("cyan"));
+            return new Panel(new Markup(userInfo))
+                .Header("[bold cyan]Steam Friends CLI[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderStyle(Style.Parse("cyan"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error creating header panel", ex);
+            return new Panel(new Markup("[red]Error loading user info[/]"))
+                .Header("[bold cyan]Steam Friends CLI[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderStyle(Style.Parse("cyan"));
+        }
     }
 
     private Panel CreateFriendsPanel()
     {
-        if (_currentFriendsList == null || _currentFriendsList.Count == 0)
+        try
         {
-            return new Panel(new Markup("[yellow]Loading friends list...[/]\n[dim]Please wait while Steam loads your friends data[/]"))
+            List<FriendInfo> currentFriends;
+            lock (_friendsListLock)
+            {
+                currentFriends = new List<FriendInfo>(_currentFriendsList);
+            }
+
+            if (currentFriends.Count == 0)
+            {
+                return new Panel(new Markup("[yellow]Loading friends list...[/]\n[dim]Please wait while Steam loads your friends data[/]"))
+                    .Header("[bold]Friends[/]")
+                    .Border(BoxBorder.Rounded)
+                    .Padding(1, 0);
+            }
+
+            var table = new Table()
+                .Border(TableBorder.None)
+                .AddColumn(new TableColumn("Friend").NoWrap())
+                .AddColumn(new TableColumn("Status"))
+                .HideHeaders();
+
+            var displayFriends = currentFriends.Take(AppConstants.Display.MaxFriendsDisplayed).ToList();
+            
+            if (displayFriends.Count == 0)
+            {
+                table.AddRow("[dim]No friends to display[/]", "");
+            }
+            else
+            {
+                foreach (var friend in displayFriends)
+                {
+                    var nameMarkup = SpectreDisplayFormatter.FormatFriendName(friend);
+                    var statusMarkup = SpectreDisplayFormatter.FormatFriendStatus(friend);
+                    table.AddRow(nameMarkup, statusMarkup);
+                }
+            }
+
+            var friendsCount = currentFriends.Count(f => f.SteamId.ConvertToUInt64() != 0);
+            var header = friendsCount > 0 ? $"[bold]Friends ({friendsCount})[/]" : "[bold]Friends[/]";
+
+            return new Panel(table)
+                .Header(header)
+                .Border(BoxBorder.Rounded)
+                .Padding(1, 0);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error creating friends panel", ex);
+            return new Panel(new Markup("[red]Error loading friends list[/]"))
                 .Header("[bold]Friends[/]")
                 .Border(BoxBorder.Rounded)
                 .Padding(1, 0);
         }
-
-        var table = new Table()
-            .Border(TableBorder.None)
-            .AddColumn(new TableColumn("Friend").NoWrap())
-            .AddColumn(new TableColumn("Status"))
-            .HideHeaders();
-
-        var displayFriends = _currentFriendsList.Take(20).ToList(); // Limit to first 20 friends for display
-        
-        if (displayFriends.Count == 0)
-        {
-            table.AddRow("[dim]No friends to display[/]", "");
-        }
-        else
-        {
-            foreach (var friend in displayFriends)
-            {
-                var nameMarkup = FormatFriendName(friend);
-                var statusMarkup = FormatFriendStatus(friend);
-                table.AddRow(nameMarkup, statusMarkup);
-            }
-        }
-
-        var friendsCount = _currentFriendsList.Count(f => f.SteamId.ConvertToUInt64() != 0);
-        var header = friendsCount > 0 ? $"[bold]Friends ({friendsCount})[/]" : "[bold]Friends[/]";
-
-        return new Panel(table)
-            .Header(header)
-            .Border(BoxBorder.Rounded)
-            .Padding(1, 0);
     }
 
     private Panel CreateFooterPanel()
@@ -314,54 +402,20 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             .Padding(0, 0);
     }
 
-    private string FormatFriendName(FriendInfo friend)
-    {
-        var color = GetSpectreColorForPersonaState(friend.State);
-        if (!string.IsNullOrEmpty(friend.GameText))
-        {
-            color = "green"; // Playing games gets bright green
-        }
-        
-        return $"[{color}]{friend.Name.EscapeMarkup()}[/]";
-    }
-
-    private string FormatFriendStatus(FriendInfo friend)
-    {
-        if (!string.IsNullOrEmpty(friend.GameText))
-        {
-            return $"[green]{friend.GameText.EscapeMarkup()}[/]";
-        }
-        
-        var stateText = PersonaStateHelper.GetPersonaStateText(friend.State);
-        var color = GetSpectreColorForPersonaState(friend.State);
-        
-        if (friend.State == EPersonaState.Offline && friend.LastSeen != DateTime.MinValue)
-        {
-            var lastSeenText = PersonaStateHelper.GetFormattedLastSeenText(friend.LastSeen);
-            return $"[{color}]Last online {lastSeenText.EscapeMarkup()}[/]";
-        }
-        
-        return $"[{color}]{stateText.EscapeMarkup()}[/]";
-    }
-
-    private string GetSpectreColorForPersonaState(EPersonaState state)
-    {
-        return state switch
-        {
-            EPersonaState.Online => "green",
-            EPersonaState.Busy => "red",
-            EPersonaState.Away => "yellow",
-            EPersonaState.Snooze => "purple",
-            EPersonaState.LookingToTrade or EPersonaState.LookingToPlay => "cyan",
-            EPersonaState.Offline => "grey",
-            _ => "white"
-        };
-    }
-
     public void Dispose()
     {
-        _isRunning = false;
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource?.Dispose();
+        try
+        {
+            Stop();
+            _inputHandler?.Dispose();
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+            _displayUpdateTask?.Dispose();
+            _logger.LogInfo("Display manager disposed successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error disposing display manager", ex);
+        }
     }
 }
