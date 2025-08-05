@@ -14,6 +14,10 @@ public class ConsoleInputHandler : IDisposable
 
     public event Action? ExitRequested;
     public event Action? ConsoleResized;
+    public event Action? ScrollUpRequested;
+    public event Action? ScrollDownRequested;
+    public event Action? ScrollToTopRequested;
+    public event Action? ScrollToBottomRequested;
 
     public ConsoleInputHandler(ILogger logger)
     {
@@ -133,6 +137,42 @@ public class ConsoleInputHandler : IDisposable
             _logger.LogInfo("Exit key pressed - requesting shutdown");
             ExitRequested?.Invoke();
             return;
+        }
+
+        // Handle scroll keys
+        switch (keyInfo.Key)
+        {
+            case ConsoleKey.UpArrow:
+                _logger.LogDebug("Up arrow pressed - scrolling up");
+                ScrollUpRequested?.Invoke();
+                break;
+                
+            case ConsoleKey.DownArrow:
+                _logger.LogDebug("Down arrow pressed - scrolling down");
+                ScrollDownRequested?.Invoke();
+                break;
+                
+            case ConsoleKey.Home:
+                _logger.LogDebug("Home key pressed - scrolling to top");
+                ScrollToTopRequested?.Invoke();
+                break;
+                
+            case ConsoleKey.End:
+                _logger.LogDebug("End key pressed - scrolling to bottom");
+                ScrollToBottomRequested?.Invoke();
+                break;
+                
+            case ConsoleKey.PageUp:
+                _logger.LogDebug("Page up pressed - scrolling up by page");
+                for (int i = 0; i < 5; i++) // Scroll up by 5 items
+                    ScrollUpRequested?.Invoke();
+                break;
+                
+            case ConsoleKey.PageDown:
+                _logger.LogDebug("Page down pressed - scrolling down by page");
+                for (int i = 0; i < 5; i++) // Scroll down by 5 items
+                    ScrollDownRequested?.Invoke();
+                break;
         }
 
         // Log other printable characters for debugging (but don't act on them)

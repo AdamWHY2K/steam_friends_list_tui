@@ -31,7 +31,7 @@ public class HeaderComponent : DisplayComponent
         try
         {
             var userInfo = SpectreDisplayFormatter.FormatUserInfo(_appState);
-            var countsInfo = $"Friends: [green]{_counts.friends}[/]  Pending: [yellow]{_counts.pending}[/]  Blocked: [red]{_counts.blocked}[/]";
+            var countsInfo = $"F: [green]{_counts.friends}[/]  P: [yellow]{_counts.pending}[/]  B: [red]{_counts.blocked}[/]";
             var headerContent = $"{countsInfo}\n{userInfo}";
             
             return new Markup(headerContent);

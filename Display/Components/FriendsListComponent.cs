@@ -2,20 +2,28 @@ using Spectre.Console;
 using Spectre.Console.Rendering;
 using SteamFriendsCLI.Models;
 using SteamFriendsCLI.Services;
+using SteamFriendsCLI.Display;
 
 namespace SteamFriendsCLI.Display.Components;
 
 /// <summary>
-/// Component responsible for rendering the friends list
+/// Component responsible for rendering the friends list with scrolling support
 /// </summary>
 public class FriendsListComponent : DisplayComponent
 {
     private readonly object _friendsLock = new();
     private List<FriendInfo> _friends = new();
+    private readonly ScrollStateManager _scrollStateManager;
 
     public FriendsListComponent(ILogger logger) : base(logger)
     {
+        _scrollStateManager = new ScrollStateManager(logger);
     }
+
+    /// <summary>
+    /// Gets the scroll state manager for this component
+    /// </summary>
+    public ScrollStateManager ScrollStateManager => _scrollStateManager;
 
     /// <summary>
     /// Updates the friends list to display
@@ -26,6 +34,22 @@ public class FriendsListComponent : DisplayComponent
         {
             _friends = friends?.ToList() ?? new List<FriendInfo>();
         }
+    }
+
+    /// <summary>
+    /// Updates the viewport size based on console dimensions
+    /// </summary>
+    public void UpdateViewport(int consoleHeight)
+    {
+        const int headerLines = 3;
+        int visibleItems = ScrollStateManager.CalculateVisibleItemsWithLogging(consoleHeight, headerLines, _logger);
+        
+        lock (_friendsLock)
+        {
+            _scrollStateManager.UpdateItemCounts(_friends.Count, visibleItems);
+        }
+        
+        _logger.LogDebug($"Updated viewport: console height={consoleHeight}, visible items={visibleItems}, total friends={_friends.Count}");
     }
 
     public override IRenderable Render()
@@ -66,17 +90,50 @@ public class FriendsListComponent : DisplayComponent
             .AddColumn(new TableColumn("Friend").NoWrap())
             .HideHeaders();
 
-        foreach (var friend in friends)
+        // Get the visible range based on scroll position
+        var (startIndex, endIndex) = _scrollStateManager.GetVisibleRange();
+        
+        // Only render friends in the visible range
+        for (int i = startIndex; i < endIndex && i < friends.Count; i++)
         {
+            var friend = friends[i];
             var nameMarkup = SpectreDisplayFormatter.FormatFriendName(friend);
             var statusMarkup = SpectreDisplayFormatter.FormatFriendStatus(friend);
             var friendDisplay = $"{nameMarkup}\n  {statusMarkup}";
             table.AddRow(friendDisplay);
         }
 
-        return new Grid()
+        // Create scroll indicator if needed
+        var scrollInfo = CreateScrollIndicator(friends.Count);
+
+        var grid = new Grid()
             .AddColumn()
             .AddRow(new Rule().RuleStyle(Style.Parse("cyan")))
             .AddRow(table);
+            
+        if (!string.IsNullOrEmpty(scrollInfo))
+        {
+            grid.AddRow(new Markup(scrollInfo));
+        }
+
+        return grid;
+    }
+
+    /// <summary>
+    /// Creates a scroll indicator showing current position
+    /// </summary>
+    private string CreateScrollIndicator(int totalFriends)
+    {
+        var (startIndex, endIndex) = _scrollStateManager.GetVisibleRange();
+        
+        if (totalFriends == 0)
+        {
+            return ""; // No friends to show
+        }
+
+        // Always show the indicator if there are friends, even if all fit on screen
+        int currentPosition = startIndex + 1; // 1-based for display
+        int endPosition = Math.Min(endIndex, totalFriends);
+        return $"[dim]Showing {currentPosition}-{endPosition} of {totalFriends} friends[/]";
     }
 }

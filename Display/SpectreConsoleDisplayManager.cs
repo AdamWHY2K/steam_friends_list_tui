@@ -39,6 +39,10 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         // Wire up events
         _inputHandler.ExitRequested += () => ExitRequested?.Invoke();
         _inputHandler.ConsoleResized += OnConsoleResized;
+        _inputHandler.ScrollUpRequested += OnScrollUpRequested;
+        _inputHandler.ScrollDownRequested += OnScrollDownRequested;
+        _inputHandler.ScrollToTopRequested += OnScrollToTopRequested;
+        _inputHandler.ScrollToBottomRequested += OnScrollToBottomRequested;
         _stateManager.AppInfoRequested += (appId) => AppInfoRequested?.Invoke(appId);
     }
 
@@ -84,6 +88,10 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         
         _logger.LogDebug("DisplayFriendsList called - updating friends list");
         _stateManager.UpdateFromSteam(steamFriends);
+        
+        // Reset scroll position to top when friends list is updated
+        _friendsListComponent.ScrollStateManager.Reset();
+        
         RefreshDisplay();
     }
 
@@ -109,6 +117,9 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
         _logger.LogDebug("Display refresh requested");
         
+        // Update viewport size based on current console dimensions
+        UpdateViewport();
+        
         // Update components with current state
         var friends = _stateManager.GetCurrentFriends();
         var counts = _stateManager.GetCurrentCounts();
@@ -120,6 +131,53 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         _renderer.RenderToConsole();
     }
 
+    private void UpdateViewport()
+    {
+        try
+        {
+            int consoleHeight = Console.WindowHeight;
+            _friendsListComponent.UpdateViewport(consoleHeight);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Could not update viewport: {ex.Message}");
+            // Use default viewport size
+            _friendsListComponent.UpdateViewport(25);
+        }
+    }
+
+    private void OnScrollUpRequested()
+    {
+        if (_friendsListComponent.ScrollStateManager.ScrollUp())
+        {
+            RefreshDisplay();
+        }
+    }
+
+    private void OnScrollDownRequested()
+    {
+        if (_friendsListComponent.ScrollStateManager.ScrollDown())
+        {
+            RefreshDisplay();
+        }
+    }
+
+    private void OnScrollToTopRequested()
+    {
+        if (_friendsListComponent.ScrollStateManager.ScrollToTop())
+        {
+            RefreshDisplay();
+        }
+    }
+
+    private void OnScrollToBottomRequested()
+    {
+        if (_friendsListComponent.ScrollStateManager.ScrollToBottom())
+        {
+            RefreshDisplay();
+        }
+    }
+
     private void OnConsoleResized()
     {
         if (!_isInitialized)
@@ -129,6 +187,10 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         }
 
         _logger.LogDebug("Console resize detected - refreshing display");
+        
+        // Reset scroll position to top on resize to avoid display issues
+        _friendsListComponent.ScrollStateManager.Reset();
+        
         RefreshDisplay();
     }
 
@@ -195,6 +257,10 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             {
                 _inputHandler.ExitRequested -= () => ExitRequested?.Invoke();
                 _inputHandler.ConsoleResized -= OnConsoleResized;
+                _inputHandler.ScrollUpRequested -= OnScrollUpRequested;
+                _inputHandler.ScrollDownRequested -= OnScrollDownRequested;
+                _inputHandler.ScrollToTopRequested -= OnScrollToTopRequested;
+                _inputHandler.ScrollToBottomRequested -= OnScrollToBottomRequested;
             }
             
             _inputHandler?.Dispose();

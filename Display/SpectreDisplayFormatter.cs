@@ -23,22 +23,12 @@ public static class SpectreDisplayFormatter
 
     public static string FormatFriendName(FriendInfo friend)
     {
-        var color = GetSpectreColorForPersonaState(friend.State);
-        if (!string.IsNullOrEmpty(friend.GameText))
-        {
-            color = "green"; // Playing games gets bright green
-        }
-        
+        var color = GetSpectreColorForPersonaState(friend.State);      
         return $"[{color}]{friend.Name.EscapeMarkup()}[/]";
     }
 
     public static string FormatFriendStatus(FriendInfo friend)
     {
-        if (!string.IsNullOrEmpty(friend.GameText))
-        {
-            return $"[green]{friend.GameText.EscapeMarkup()}[/]";
-        }
-        
         var stateText = PersonaStateHelper.GetPersonaStateText(friend.State);
         var color = GetSpectreColorForPersonaState(friend.State);
         
@@ -53,18 +43,18 @@ public static class SpectreDisplayFormatter
 
     public static string FormatUserInfo(AppState appState)
     {
-        var userInfo = $"❯ {appState.CurrentPersonaName ?? "Loading..."}";
+        var userInfo = $"{appState.CurrentPersonaName ?? "Loading..."}";
         
         var stateText = PersonaStateHelper.GetPersonaStateText(appState.CurrentUserState);
         var stateColor = GetSpectreColorForPersonaState(appState.CurrentUserState);
         
         if (!string.IsNullOrEmpty(appState.CurrentGame))
         {
-            userInfo += $" - [green]{appState.CurrentGame}[/]";
+            userInfo += $"\n  [{stateColor}]{appState.CurrentGame}[/]";
         }
         else
         {
-            userInfo += $" - [{stateColor}]{stateText}[/]";
+            userInfo += $"\n  [{stateColor}]{stateText}[/]";
         }
 
         return userInfo;
