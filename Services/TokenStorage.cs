@@ -194,13 +194,19 @@ public class TokenStorage
         return entropy.ToArray();
     }
 
-    private static byte[] DeriveKeyFromEntropy(byte[] entropy)
+    private static byte[] DeriveKeyFromEntropy(byte[] entropy, byte[] salt)
     {
-        // Use PBKDF2 to derive a 32-byte key from entropy
-        using var pbkdf2 = new Rfc2898DeriveBytes(entropy, entropy, 10000, HashAlgorithmName.SHA256);
+        // Use PBKDF2 to derive a 32-byte key from entropy and a random salt
+        using var pbkdf2 = new Rfc2898DeriveBytes(entropy, salt, 10000, HashAlgorithmName.SHA256);
         return pbkdf2.GetBytes(32); // 256-bit key for AES
     }
 
+    private static byte[] GenerateRandomSalt(int size = 16)
+    {
+        var salt = new byte[size];
+        RandomNumberGenerator.Fill(salt);
+        return salt;
+    }
     private static void SetSecureFilePermissions(string filePath)
     {
         try
