@@ -32,9 +32,20 @@ public class HeaderComponent : DisplayComponent
         {
             var userInfo = SpectreDisplayFormatter.FormatUserInfo(_appState);
             var countsInfo = $"F: [green]{_counts.friends}[/]  P: [yellow]{_counts.pending}[/]  B: [red]{_counts.blocked}[/]";
-            var headerContent = $"{countsInfo}\n{userInfo}";
+            var centeredCountsInfo = Align.Center(new Markup(countsInfo));
             
-            return new Markup(headerContent);
+            // Create a table for just the centered counts
+            var countsTable = new Table()
+                .BorderStyle(Style.Plain)
+                .HideHeaders()
+                .AddColumn(new TableColumn(""));
+            
+            countsTable.AddRow(centeredCountsInfo);
+            
+            // Combine the counts table with the user info below it
+            var layout = new Rows(countsTable, new Markup(userInfo));
+            
+            return layout;
         }
         catch (Exception ex)
         {
