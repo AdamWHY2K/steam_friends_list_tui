@@ -210,6 +210,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         
         try
         {
+            _friendsListComponent.ScrollStateManager.Reset();
             RefreshDisplay();
             _inputHandler.Start();
             _logger.LogInfo("Display manager started successfully");

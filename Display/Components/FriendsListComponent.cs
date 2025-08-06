@@ -42,7 +42,7 @@ public class FriendsListComponent : DisplayComponent
     public void UpdateViewport(int consoleHeight)
     {
         const int headerLines = 3;
-        int visibleItems = ScrollStateManager.CalculateVisibleItemsWithLogging(consoleHeight, headerLines, _logger);
+        int visibleItems = ScrollStateManager.CalculateVisibleItems(consoleHeight, headerLines);
         
         lock (_friendsLock)
         {

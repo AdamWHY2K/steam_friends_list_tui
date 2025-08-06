@@ -143,46 +143,13 @@ public class ScrollStateManager
     /// </summary>
     public static int CalculateVisibleItems(int consoleHeight, int headerLines)
     {
-        // Account for:
-        // - Header section (user info + counts) - typically 3-4 lines
-        // - Panel borders (top + bottom) - 2 lines
-        // - Panel padding (top + bottom) - 0 lines (we use padding 1,0 which is horizontal only)
-        // - Rule separator - 1 line
-        // - Scroll indicator - 1 line when needed
-        // - Small buffer for safety - 0 lines (maximizing space)
         const int panelBorders = 2; // Top and bottom borders
         const int ruleLines = 1;
-        const int scrollIndicatorLines = 1;
-        const int bufferLines = 0; // No buffer to maximize space usage
-        
-        int reservedLines = headerLines + panelBorders + ruleLines + scrollIndicatorLines + bufferLines;
+        int reservedLines = headerLines + panelBorders + ruleLines;
         int availableLines = consoleHeight - reservedLines;
-        
         // Each friend takes 2 lines (name + status)
         const int linesPerFriend = 2;
-        
         int visibleItems = Math.Max(1, availableLines / linesPerFriend);
-        
-        return visibleItems;
-    }
-
-    /// <summary>
-    /// Calculates visible items with debug logging
-    /// </summary>
-    public static int CalculateVisibleItemsWithLogging(int consoleHeight, int headerLines, ILogger logger)
-    {
-        const int panelBorders = 2;
-        const int ruleLines = 1;
-        const int scrollIndicatorLines = 1;
-        const int bufferLines = 0; // No buffer to maximize space usage
-        
-        int reservedLines = headerLines + panelBorders + ruleLines + scrollIndicatorLines + bufferLines;
-        int availableLines = consoleHeight - reservedLines;
-        const int linesPerFriend = 2;
-        int visibleItems = Math.Max(1, availableLines / linesPerFriend);
-        
-        logger.LogDebug($"Viewport calc: Console={consoleHeight}, Header={headerLines}, Reserved={reservedLines}, Available={availableLines}, Visible={visibleItems}");
-        
         return visibleItems;
     }
 
