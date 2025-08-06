@@ -146,9 +146,17 @@ public class SteamCallbackHandler
         // Check if this is our own persona state changing
         if (callback.FriendID == _steamClient.SteamID)
         {
-            _appState.CurrentUserState = callback.State;
-            _logger.LogDebug($"Display update triggered: Own persona state changed to {callback.State}");
-            _displayManager.DisplayFriendsList(_steamFriends);
+            // Only update display if the state actually changed
+            if (_appState.CurrentUserState != callback.State)
+            {
+                _appState.CurrentUserState = callback.State;
+                _logger.LogDebug($"Display update triggered: Own persona state changed to {callback.State}");
+                _displayManager.DisplayFriendsList(_steamFriends);
+            }
+            else
+            {
+                _logger.LogDebug($"Own persona state callback received but state unchanged: {callback.State}");
+            }
             return;
         }
 
@@ -201,16 +209,25 @@ public class SteamCallbackHandler
                 }
             }
 
-            // Determine display update reason
+            // Determine if anything actually changed that would warrant a display update
             var updateReasons = new List<string>();
-            if (hasStatusFlag) updateReasons.Add($"status changed to {callback.State}");
+            bool stateChanged = !hadPreviousState || lastState != stateToTrack;
+            
+            if (hasStatusFlag && stateChanged) updateReasons.Add($"status changed to {callback.State}");
             if (hasGameExtraInfoFlag) updateReasons.Add("game info updated");
             if (callback.LastLogOff != DateTime.MinValue) updateReasons.Add("last seen time updated");
             
-            var reasonText = updateReasons.Count > 0 ? string.Join(", ", updateReasons) : "persona state updated";
-            _logger.LogDebug($"Display update triggered: Friend {friendName} ({callback.FriendID}) - {reasonText}");
-
-            _displayManager.DisplayFriendsList(_steamFriends);
+            // Only trigger display update if there are meaningful changes
+            if (updateReasons.Count > 0)
+            {
+                var reasonText = string.Join(", ", updateReasons);
+                _logger.LogDebug($"Display update triggered: Friend {friendName} ({callback.FriendID}) - {reasonText}");
+                _displayManager.DisplayFriendsList(_steamFriends);
+            }
+            else
+            {
+                _logger.LogDebug($"Persona state callback received for {friendName} but no meaningful changes detected");
+            }
         }
     }
 
