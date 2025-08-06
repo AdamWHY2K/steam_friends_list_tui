@@ -66,7 +66,7 @@ public class TokenStorage
             var tokenData = JsonSerializer.Deserialize<AuthTokenData>(json);
 
             // Check if tokens are too old (older than configured expiration period)
-            if (tokenData != null && DateTime.UtcNow - tokenData.SavedAt > TimeSpan.FromDays(AppConstants.TokenExpirationDays))
+            if (tokenData != null && DateTime.UtcNow - tokenData.SavedAt > TimeSpan.FromDays(AppConstants.Token.TokenExpirationDays))
             {
                 DeleteAuthTokens();
                 return null;
@@ -119,7 +119,7 @@ public class TokenStorage
         }
 
         var daysSinceCreated = (DateTime.UtcNow - tokens.SavedAt).TotalDays;
-        if (daysSinceCreated > 30)
+        if (daysSinceCreated > AppConstants.Token.TokenExpirationDays)
         {
             return $"Authentication tokens expired ({daysSinceCreated:F0} days old).";
         }
