@@ -154,7 +154,7 @@ public class ScrollStateManager
         const int scrollIndicator = 1;  // "Showing X-Y of Z friends" line
         
         int reservedLines = panelHeader + panelBorders + headerLines + ruleLines + scrollIndicator;
-        int availableLines = consoleHeight - reservedLines;
+        int availableLines = Math.Max(4, consoleHeight - reservedLines); // Ensure at least 4 lines for friends
         
         // Each friend takes 2 lines (name + status)
         const int linesPerFriend = 2;

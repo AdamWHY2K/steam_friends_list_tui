@@ -115,7 +115,6 @@ public class FriendsListComponent : DisplayComponent
         {
             grid.AddRow(new Markup(scrollInfo));
         }
-
         return grid;
     }
 
@@ -134,6 +133,6 @@ public class FriendsListComponent : DisplayComponent
         // Always show the indicator if there are friends, even if all fit on screen
         int currentPosition = startIndex + 1; // 1-based for display
         int endPosition = Math.Min(endIndex, totalFriends);
-        return $"[dim]Showing {currentPosition}-{endPosition} of {totalFriends} friends[/]";
+        return $"\n[dim]Showing {currentPosition}-{endPosition} of {totalFriends} friends[/]";
     }
 }

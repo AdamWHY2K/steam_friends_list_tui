@@ -31,9 +31,14 @@ public class DisplayRenderer
             AnsiConsole.Clear();
             
             var content = CreateMainLayout();
-            var mainPanel = CreateMainPanel(content);
             
-            AnsiConsole.Write(mainPanel);
+            // Use a layout that fills the entire console height
+            var layout = new Layout("Root")
+                .SplitRows(
+                    new Layout("Main").Update(CreateMainPanel(content))
+                );
+            
+            AnsiConsole.Write(layout);
         }
         catch (Exception ex)
         {
@@ -56,7 +61,7 @@ public class DisplayRenderer
             .Header("[bold cyan]Steam Friends List CLI[/]")
             .Border(BoxBorder.Rounded)
             .BorderStyle(Style.Parse("cyan"))
-            .Padding(1, 0);
+            .Padding(1, 0, 1, 0); // Left, Top, Right, Bottom padding
     }
 
     private void RenderError(string message)
