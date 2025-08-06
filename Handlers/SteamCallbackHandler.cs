@@ -111,14 +111,17 @@ public class SteamCallbackHandler
         _appState.FriendsListReceived = true;
         _logger.LogInfo("Friends list received from Steam...");
 
-        // First, just get basic friend info with simpler flags
+        // Request comprehensive friend info including game status
         SteamFriendsIterator.ForEachFriendOfType(_steamFriends, EFriendRelationship.Friend, steamIdFriend =>
         {
             _steamFriends.RequestFriendInfo(steamIdFriend,
                 EClientPersonaStateFlag.PlayerName |
                 EClientPersonaStateFlag.Presence |
                 EClientPersonaStateFlag.Status |
-                EClientPersonaStateFlag.LastSeen);
+                EClientPersonaStateFlag.LastSeen |
+                EClientPersonaStateFlag.GameExtraInfo |
+                EClientPersonaStateFlag.GameDataBlob |
+                EClientPersonaStateFlag.RichPresence);
         });
         
         // Wait a moment and then trigger an initial display update
@@ -159,6 +162,7 @@ public class SteamCallbackHandler
             bool hadPreviousState = _appState.TryGetPersonaState(callback.FriendID, out EPersonaState lastState);
 
             bool hasStatusFlag = callback.StatusFlags.HasFlag(EClientPersonaStateFlag.Status);
+            bool hasGameExtraInfoFlag = callback.StatusFlags.HasFlag(EClientPersonaStateFlag.GameExtraInfo);
             EPersonaState stateToTrack;
 
             if (hasStatusFlag)
@@ -181,6 +185,19 @@ public class SteamCallbackHandler
                 _appState.UpdateLastSeenTime(callback.FriendID, callback.LastLogOff);
             }
 
+            // Check if game status has changed - refresh app info if needed
+            if (hasGameExtraInfoFlag)
+            {
+                var gameId = _steamFriends.GetFriendGamePlayed(callback.FriendID);
+                if (gameId != null && gameId.AppID != 0)
+                {
+                    if (!_appState.TryGetAppName(gameId.AppID, out string? cachedName) || string.IsNullOrEmpty(cachedName))
+                    {
+                        RequestAppInfo(gameId.AppID);
+                    }
+                }
+            }
+
             _displayManager.DisplayFriendsList(_steamFriends);
         }
     }
@@ -196,12 +213,10 @@ public class SteamCallbackHandler
                 if (!string.IsNullOrEmpty(name))
                 {
                     _appState.UpdateAppName(app.Key, name);
-
                     if (app.Key == _appState.CurrentPlayingAppID && _appState.CurrentPlayingAppID != 0)
                     {
                         _appState.CurrentGame = name;
                     }
-
                     if (_appState.FriendsListReceived)
                     {
                         _displayManager.DisplayFriendsList(_steamFriends);
