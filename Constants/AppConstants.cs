@@ -17,6 +17,18 @@ public static class AppConstants
     {
         public static readonly TimeSpan CallbackWait = TimeSpan.FromSeconds(1);
         public static readonly TimeSpan GuiShutdown = TimeSpan.FromSeconds(2);
+        public static readonly TimeSpan InputCheckInterval = TimeSpan.FromMilliseconds(100);
+    }
+
+    // Display constants
+    public static class Display
+    {
+        public const int HeaderSectionSize = 4;
+    }
+
+    public static class Token
+    {
+        public const int TokenExpirationDays = 30; // Tokens expire after 30 days
     }
 
     // UI Messages
@@ -27,5 +39,8 @@ public static class AppConstants
         public const string UseQrCode = "Use the Steam Mobile App to sign in via QR code:";
         public const string DisconnectedFromSteam = "Disconnected from Steam";
         public const string SuccessfullyLoggedOn = "Successfully logged on!";
+        public const string UsingSavedAuth = "Using saved authentication credentials...";
+        public const string AuthTokensExpired = "Saved authentication tokens have expired. Please authenticate again.";
+        public const string QRCodeAuthRequired = "QR Code authentication required. Please scan the code with your Steam Mobile app.";
     }
 }

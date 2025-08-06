@@ -55,13 +55,19 @@ public class FriendsListBuilder
     private FriendInfo? CreateFriendInfo(SteamFriends steamFriends, SteamID steamIdFriend)
     {
         string? friendName = steamFriends.GetFriendPersonaName(steamIdFriend);
+        Console.WriteLine($"Creating friend info for {steamIdFriend}: Name='{friendName}'");
         
+        // Sometimes the name might be empty initially but become available later
+        // Let's be more permissive and create a friend info anyway
         if (string.IsNullOrEmpty(friendName))
         {
-            return CreateLoadingFriendInfo(steamIdFriend);
+            friendName = $"Friend {steamIdFriend.AccountID}"; // Use account ID as fallback
+            Console.WriteLine($"Using fallback name for {steamIdFriend}: {friendName}");
         }
 
         EPersonaState friendState = GetFriendState(steamFriends, steamIdFriend);
+        Console.WriteLine($"Friend {friendName} ({steamIdFriend}) has state: {friendState}");
+        
         string baseStatus = PersonaStateHelper.GetPersonaStateText(friendState);
         string statusText;
         string gameText = "";

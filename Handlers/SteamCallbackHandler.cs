@@ -4,6 +4,7 @@ using SteamFriendsCLI.Display;
 using SteamFriendsCLI.Services;
 using SteamFriendsCLI.Constants;
 
+
 namespace SteamFriendsCLI.Handlers;
 
 public class SteamCallbackHandler
@@ -14,6 +15,10 @@ public class SteamCallbackHandler
     private readonly SteamApps _steamApps;
     private readonly AppState _appState;
     private readonly IFriendsDisplayManager _displayManager;
+    private readonly ILogger _logger;
+    
+    // Event for authentication failure (e.g., expired tokens)
+    public event Action? AuthenticationFailed;
 
     public SteamCallbackHandler(
         SteamClient steamClient,
@@ -21,7 +26,8 @@ public class SteamCallbackHandler
         SteamFriends steamFriends,
         SteamApps steamApps,
         AppState appState,
-        IFriendsDisplayManager displayManager)
+        IFriendsDisplayManager displayManager,
+        ILogger logger)
     {
         _steamClient = steamClient;
         _steamUser = steamUser;
@@ -29,6 +35,7 @@ public class SteamCallbackHandler
         _steamApps = steamApps;
         _appState = appState;
         _displayManager = displayManager;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public void OnDisconnected(SteamClient.DisconnectedCallback callback)
@@ -42,6 +49,19 @@ public class SteamCallbackHandler
         if (callback.Result != EResult.OK)
         {
             Console.WriteLine("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult);
+            
+            // Check if this is an authentication failure that might benefit from re-authentication
+            if (callback.Result == EResult.AccessDenied || 
+                callback.Result == EResult.InvalidLoginAuthCode || 
+                callback.Result == EResult.AccountLoginDeniedNeedTwoFactor ||
+                callback.Result == EResult.InvalidPassword)
+            {
+                Console.WriteLine("Authentication tokens may be expired. Clearing saved tokens...");
+                TokenStorage.DeleteAuthTokens();
+                AuthenticationFailed?.Invoke();
+                return;
+            }
+            
             _appState.IsRunning = false;
             return;
         }
@@ -89,31 +109,34 @@ public class SteamCallbackHandler
     public void OnFriendsList(SteamFriends.FriendsListCallback callback)
     {
         _appState.FriendsListReceived = true;
+        _logger.LogInfo("Friends list received from Steam...");
 
+        // First, just get basic friend info with simpler flags
         SteamFriendsIterator.ForEachFriendOfType(_steamFriends, EFriendRelationship.Friend, steamIdFriend =>
         {
             _steamFriends.RequestFriendInfo(steamIdFriend,
                 EClientPersonaStateFlag.PlayerName |
                 EClientPersonaStateFlag.Presence |
-                EClientPersonaStateFlag.LastSeen |
-                EClientPersonaStateFlag.RichPresence |
                 EClientPersonaStateFlag.Status |
-                EClientPersonaStateFlag.GameExtraInfo |
-                EClientPersonaStateFlag.GameDataBlob |
-                EClientPersonaStateFlag.Watching |
-                EClientPersonaStateFlag.Broadcast |
-                EClientPersonaStateFlag.ClanData |
-                EClientPersonaStateFlag.UserClanRank |
-                EClientPersonaStateFlag.SourceID |
-                EClientPersonaStateFlag.QueryPort |
-                EClientPersonaStateFlag.Facebook);
+                EClientPersonaStateFlag.LastSeen);
         });
+        
+        // Wait a moment and then trigger an initial display update
+        Task.Delay(2000).ContinueWith(_ => 
+        {
+            Console.WriteLine("Initial delay complete, updating display...");
+            _displayManager.DisplayFriendsList(_steamFriends);
+        });
+        
+        Console.WriteLine("Requested friend info for all friends, waiting for persona state callbacks...");
     }
 
     public void OnPersonaState(SteamFriends.PersonaStateCallback callback)
     {
         if (!_appState.FriendsListReceived)
             return;
+
+        Console.WriteLine($"Persona state callback received for: {callback.FriendID}");
 
         // Check if this is our own persona state changing
         if (callback.FriendID == _steamClient.SteamID)
@@ -125,8 +148,13 @@ public class SteamCallbackHandler
 
         // Check if this is a friend
         EFriendRelationship relationship = _steamFriends.GetFriendRelationship(callback.FriendID);
+        Console.WriteLine($"Friend {callback.FriendID} has relationship: {relationship}");
+        
         if (relationship == EFriendRelationship.Friend)
         {
+            var friendName = _steamFriends.GetFriendPersonaName(callback.FriendID);
+            Console.WriteLine($"Processing persona state for friend: {friendName} ({callback.FriendID}) - State: {callback.State}");
+            
             EPersonaState currentQueriedState = _steamFriends.GetFriendPersonaState(callback.FriendID);
             bool hadPreviousState = _appState.TryGetPersonaState(callback.FriendID, out EPersonaState lastState);
 

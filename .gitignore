@@ -6,6 +6,10 @@
 # dotenv files
 .env
 
+# Authentication tokens (encrypted)
+auth_tokens.json
+**/sfcli/auth_tokens.json
+
 # User-specific files
 *.rsuser
 *.suo
