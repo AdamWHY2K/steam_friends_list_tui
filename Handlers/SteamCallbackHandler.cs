@@ -105,7 +105,7 @@ public class SteamCallbackHandler
     public void OnFriendsList(SteamFriends.FriendsListCallback callback)
     {
         _appState.FriendsListReceived = true;
-        Console.WriteLine("Friends list received from Steam...");
+        _logger.LogInformation("Friends list received from Steam...");
 
         // First, just get basic friend info with simpler flags
         SteamFriendsIterator.ForEachFriendOfType(_steamFriends, EFriendRelationship.Friend, steamIdFriend =>
