@@ -1,9 +1,9 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using SteamFriendsCLI.Display.Components;
-using SteamFriendsCLI.Services;
+using SteamFriendsTUI.Display.Components;
+using SteamFriendsTUI.Services;
 
-namespace SteamFriendsCLI.Display;
+namespace SteamFriendsTUI.Display;
 
 /// <summary>
 /// Handles the overall layout and rendering of the display
@@ -58,9 +58,9 @@ public class DisplayRenderer
     private Panel CreateMainPanel(IRenderable content)
     {
         return new Panel(content)
-            .Header("[bold cyan]Steam Friends List CLI[/]")
+            .Header("[white]Steam Friends List TUI[/]")
             .Border(BoxBorder.Rounded)
-            .BorderStyle(Style.Parse("cyan"))
+            .BorderStyle(Style.Parse("white"))
             .Padding(1, 0, 1, 0); // Left, Top, Right, Bottom padding
     }
 
@@ -70,7 +70,7 @@ public class DisplayRenderer
         {
             AnsiConsole.Clear();
             var errorPanel = new Panel(new Markup($"[red]{message}[/]"))
-                .Header("[bold red]Steam Friends List CLI - Error[/]")
+                .Header("[bold red]Steam Friends List TUI - Error[/]")
                 .Border(BoxBorder.Rounded)
                 .BorderStyle(Style.Parse("red"))
                 .Padding(1, 0);

@@ -1,6 +1,6 @@
 using SteamKit2;
 
-namespace SteamFriendsCLI.Display;
+namespace SteamFriendsTUI.Display;
 
 public interface IFriendsDisplayManager : IDisposable
 {

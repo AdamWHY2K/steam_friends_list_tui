@@ -1,10 +1,10 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using SteamFriendsCLI.Models;
-using SteamFriendsCLI.Services;
-using SteamFriendsCLI.Display;
+using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Services;
+using SteamFriendsTUI.Display;
 
-namespace SteamFriendsCLI.Display.Components;
+namespace SteamFriendsTUI.Display.Components;
 
 /// <summary>
 /// Component responsible for rendering the friends list with scrolling support
@@ -108,7 +108,7 @@ public class FriendsListComponent : DisplayComponent
 
         var grid = new Grid()
             .AddColumn()
-            .AddRow(new Rule().RuleStyle(Style.Parse("cyan")))
+            .AddRow(new Rule().RuleStyle(Style.Parse("white")))
             .AddRow(table);
             
         if (!string.IsNullOrEmpty(scrollInfo))

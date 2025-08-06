@@ -1,9 +1,9 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using SteamFriendsCLI.Models;
-using SteamFriendsCLI.Services;
+using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Services;
 
-namespace SteamFriendsCLI.Display.Components;
+namespace SteamFriendsTUI.Display.Components;
 
 /// <summary>
 /// Component responsible for rendering the header section with user info and counts

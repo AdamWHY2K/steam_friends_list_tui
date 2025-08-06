@@ -8,7 +8,7 @@
 
 # Authentication tokens (encrypted)
 auth_tokens.json
-**/sfcli/auth_tokens.json
+**/sftui/auth_tokens.json
 
 # User-specific files
 *.rsuser

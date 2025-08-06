@@ -1,9 +1,9 @@
 using SteamKit2;
-using SteamFriendsCLI.Constants;
-using SteamFriendsCLI.Models;
-using SteamFriendsCLI.Services;
+using SteamFriendsTUI.Constants;
+using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Services;
 
-namespace SteamFriendsCLI.Display;
+namespace SteamFriendsTUI.Display;
 
 /// <summary>
 /// Manages the state and data for the display system

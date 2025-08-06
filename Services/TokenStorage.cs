@@ -2,16 +2,16 @@ using System.Text.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Runtime.InteropServices;
-using SteamFriendsCLI.Models;
-using SteamFriendsCLI.Constants;
+using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Constants;
 
-namespace SteamFriendsCLI.Services;
+namespace SteamFriendsTUI.Services;
 
 public class TokenStorage
 {
     private static readonly string TokenFilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
-        "sfcli",
+        "sftui",
         "auth_tokens.json"
     );
 

@@ -1,10 +1,10 @@
 using Spectre.Console;
 using SteamKit2;
-using SteamFriendsCLI.Display.Components;
-using SteamFriendsCLI.Models;
-using SteamFriendsCLI.Services;
+using SteamFriendsTUI.Display.Components;
+using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Services;
 
-namespace SteamFriendsCLI.Display;
+namespace SteamFriendsTUI.Display;
 
 /// <summary>
 /// Refactored display manager that coordinates display components and state management
@@ -67,7 +67,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         try
         {
             AnsiConsole.Clear();
-            AnsiConsole.MarkupLine("[bold cyan]Steam Friends List CLI[/] - Initializing interface...");
+            AnsiConsole.MarkupLine("[white]Steam Friends List TUI[/] - Initializing interface...");
             _isInitialized = true;
             _logger.LogInfo("Display manager initialized successfully");
         }

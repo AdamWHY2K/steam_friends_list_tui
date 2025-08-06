@@ -1,8 +1,8 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using SteamFriendsCLI.Services;
+using SteamFriendsTUI.Services;
 
-namespace SteamFriendsCLI.Display.Components;
+namespace SteamFriendsTUI.Display.Components;
 
 /// <summary>
 /// Base class for display components that can render themselves

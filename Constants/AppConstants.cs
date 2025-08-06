@@ -1,4 +1,4 @@
-namespace SteamFriendsCLI.Constants;
+namespace SteamFriendsTUI.Constants;
 
 public static class AppConstants
 {

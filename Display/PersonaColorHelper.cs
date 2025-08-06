@@ -1,7 +1,7 @@
 using SteamKit2;
-using SteamFriendsCLI.Services;
+using SteamFriendsTUI.Services;
 
-namespace SteamFriendsCLI.Display;
+namespace SteamFriendsTUI.Display;
 
 public static class PersonaColorHelper
 {

@@ -1,4 +1,4 @@
-namespace SteamFriendsCLI.Services;
+namespace SteamFriendsTUI.Services;
 
 public class ConsoleLogger : ILogger
 {

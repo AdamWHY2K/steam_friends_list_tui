@@ -1,7 +1,7 @@
-using SteamFriendsCLI.Services;
-using SteamFriendsCLI.Constants;
+using SteamFriendsTUI.Services;
+using SteamFriendsTUI.Constants;
 
-namespace SteamFriendsCLI.Display;
+namespace SteamFriendsTUI.Display;
 
 public class ConsoleInputHandler : IDisposable
 {

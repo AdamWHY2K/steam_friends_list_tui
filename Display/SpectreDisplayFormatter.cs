@@ -1,9 +1,9 @@
 using SteamKit2;
 using Spectre.Console;
-using SteamFriendsCLI.Models;
-using SteamFriendsCLI.Services;
+using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Services;
 
-namespace SteamFriendsCLI.Display;
+namespace SteamFriendsTUI.Display;
 
 public static class SpectreDisplayFormatter
 {
@@ -43,19 +43,13 @@ public static class SpectreDisplayFormatter
 
     public static string FormatUserInfo(AppState appState)
     {
-        var userInfo = $"{appState.CurrentPersonaName ?? "Loading..."}";
-        
         var stateText = PersonaStateHelper.GetPersonaStateText(appState.CurrentUserState);
         var stateColor = GetSpectreColorForPersonaState(appState.CurrentUserState);
-        
-        if (!string.IsNullOrEmpty(appState.CurrentGame))
-        {
-            userInfo += $"\n  [{stateColor}]{appState.CurrentGame}[/]";
-        }
-        else
-        {
-            userInfo += $"\n  [{stateColor}]{stateText}[/]";
-        }
+        var userInfo = $"[bold {stateColor}]{appState.CurrentPersonaName ?? "Loading..."}[/]";        
+        userInfo += "\n  ";
+        userInfo += !string.IsNullOrEmpty(appState.CurrentGame)
+            ? $"[{stateColor}]{appState.CurrentGame}[/]"
+            : $"[{stateColor}]{stateText}[/]";
 
         return userInfo;
     }

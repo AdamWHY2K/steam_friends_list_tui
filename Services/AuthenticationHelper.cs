@@ -1,8 +1,8 @@
 using QRCoder;
 using SteamKit2.Authentication;
-using SteamFriendsCLI.Constants;
+using SteamFriendsTUI.Constants;
 
-namespace SteamFriendsCLI.Services;
+namespace SteamFriendsTUI.Services;
 
 public static class AuthenticationHelper
 {

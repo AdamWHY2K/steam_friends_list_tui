@@ -1,6 +1,6 @@
-using SteamFriendsCLI;
+using SteamFriendsTUI;
 
-// Create and run the Steam Friends CLI application
+// Create and run the Steam Friends List TUI application
 using var app = new SteamFriendsApp();
 
 // Handle Ctrl+C gracefully

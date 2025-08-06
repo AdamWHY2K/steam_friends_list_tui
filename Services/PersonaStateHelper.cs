@@ -1,6 +1,6 @@
 using SteamKit2;
 
-namespace SteamFriendsCLI.Services;
+namespace SteamFriendsTUI.Services;
 
 public static class PersonaStateHelper
 {

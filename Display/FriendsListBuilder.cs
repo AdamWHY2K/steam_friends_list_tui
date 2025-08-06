@@ -1,9 +1,9 @@
 using SteamKit2;
-using SteamFriendsCLI.Models;
-using SteamFriendsCLI.Services;
-using SteamFriendsCLI.Constants;
+using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Services;
+using SteamFriendsTUI.Constants;
 
-namespace SteamFriendsCLI.Display;
+namespace SteamFriendsTUI.Display;
 
 public class FriendsListBuilder
 {

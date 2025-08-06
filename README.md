@@ -1,4 +1,4 @@
-# Steam Friends CLI
+# Steam Friends List TUI
 
 View your Steam friends list from the command line.
 
@@ -30,7 +30,7 @@ The application uses Steam's QR code authentication system with persistent token
 - File and directory permissions are set to owner-only access
 - Tokens use machine-specific encryption to prevent theft if copied to another device
 - Tokens automatically expire after 30 days for security
-- You can manually clear tokens by deleting the auth_tokens.json file in the sfcli folder
+- You can manually clear tokens by deleting the auth_tokens.json file in the sftui folder
 
 ## Dependencies
 

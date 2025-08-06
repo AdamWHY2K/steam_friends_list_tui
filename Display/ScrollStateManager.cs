@@ -1,6 +1,6 @@
-using SteamFriendsCLI.Services;
+using SteamFriendsTUI.Services;
 
-namespace SteamFriendsCLI.Display;
+namespace SteamFriendsTUI.Display;
 
 /// <summary>
 /// Manages the scroll position and viewport for the friends list
@@ -148,7 +148,7 @@ public class ScrollStateManager
     /// </summary>
     public static int CalculateVisibleItems(int consoleHeight, int headerLines)
     {
-        const int panelHeader = 1;      // "Steam Friends List CLI" header
+        const int panelHeader = 1;      // "Steam Friends List TUI" header
         const int panelBorders = 2;     // Top and bottom borders of the panel
         const int ruleLines = 1;        // Separator line between header and friends
         const int scrollIndicator = 1;  // "Showing X-Y of Z friends" line

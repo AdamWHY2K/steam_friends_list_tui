@@ -1,12 +1,12 @@
 using SteamKit2;
 using SteamKit2.Authentication;
-using SteamFriendsCLI.Models;
-using SteamFriendsCLI.Display;
-using SteamFriendsCLI.Handlers;
-using SteamFriendsCLI.Services;
-using SteamFriendsCLI.Constants;
+using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Display;
+using SteamFriendsTUI.Handlers;
+using SteamFriendsTUI.Services;
+using SteamFriendsTUI.Constants;
 
-namespace SteamFriendsCLI;
+namespace SteamFriendsTUI;
 
 public class SteamFriendsApp : IDisposable
 {
@@ -31,7 +31,7 @@ public class SteamFriendsApp : IDisposable
         _steamApps = _steamClient.GetHandler<SteamApps>() ?? throw new InvalidOperationException("Failed to get SteamApps handler");
         
         _appState = new AppState();
-        var logger = new SteamFriendsCLI.Services.ConsoleLogger();
+        var logger = new SteamFriendsTUI.Services.ConsoleLogger();
         _displayManager = new SpectreConsoleDisplayManager(_appState, logger);
         _callbackHandler = new SteamCallbackHandler(_steamClient, _steamUser, _steamFriends, _steamApps, _appState, _displayManager, logger);
         _cancellationTokenSource = new CancellationTokenSource();
@@ -66,7 +66,7 @@ public class SteamFriendsApp : IDisposable
         try
         {
             // Show authentication status at startup
-            Console.WriteLine("Steam Friends CLI - Starting up...");
+            Console.WriteLine("Steam Friends List TUI - Starting up...");
             Console.WriteLine(TokenStorage.GetTokenStatusMessage());
             Console.WriteLine();
             

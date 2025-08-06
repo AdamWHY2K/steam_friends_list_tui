@@ -1,4 +1,4 @@
-namespace SteamFriendsCLI.Models;
+namespace SteamFriendsTUI.Models;
 
 public class AuthTokenData
 {

@@ -1,6 +1,6 @@
 using SteamKit2;
 
-namespace SteamFriendsCLI.Models;
+namespace SteamFriendsTUI.Models;
 
 public class AppState
 {

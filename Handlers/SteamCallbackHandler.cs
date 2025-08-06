@@ -1,11 +1,11 @@
 using SteamKit2;
-using SteamFriendsCLI.Models;
-using SteamFriendsCLI.Display;
-using SteamFriendsCLI.Services;
-using SteamFriendsCLI.Constants;
+using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Display;
+using SteamFriendsTUI.Services;
+using SteamFriendsTUI.Constants;
 
 
-namespace SteamFriendsCLI.Handlers;
+namespace SteamFriendsTUI.Handlers;
 
 public class SteamCallbackHandler
 {
