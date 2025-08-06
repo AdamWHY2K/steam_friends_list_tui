@@ -92,7 +92,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         // Reset scroll position to top when friends list is updated
         _friendsListComponent.ScrollStateManager.Reset();
         
-        RefreshDisplay();
+        RefreshDisplay(resetScroll: true);
     }
 
     public void UpdateConnectionStatus(string status)
@@ -107,7 +107,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         RefreshDisplay();
     }
 
-    public void RefreshDisplay()
+    public void RefreshDisplay(bool resetScroll = false)
     {
         if (!_isInitialized)
         {
@@ -117,32 +117,32 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
         _logger.LogDebug("Display refresh requested");
         
-        // Update viewport size based on current console dimensions
-        UpdateViewport();
-        
-        // Update components with current state
+        // Update components with current state first
         var friends = _stateManager.GetCurrentFriends();
         var counts = _stateManager.GetCurrentCounts();
         
         _friendsListComponent.UpdateFriends(friends);
         _headerComponent.UpdateCounts(counts.friends, counts.blocked, counts.pending);
         
+        // Update viewport size based on current console dimensions AFTER friends are updated
+        UpdateViewport(resetScroll);
+        
         // Render to console
         _renderer.RenderToConsole();
     }
 
-    private void UpdateViewport()
+    private void UpdateViewport(bool resetScroll = false)
     {
         try
         {
             int consoleHeight = Console.WindowHeight;
-            _friendsListComponent.UpdateViewport(consoleHeight);
+            _friendsListComponent.UpdateViewport(consoleHeight, resetScroll);
         }
         catch (Exception ex)
         {
             _logger.LogWarning($"Could not update viewport: {ex.Message}");
             // Use default viewport size
-            _friendsListComponent.UpdateViewport(25);
+            _friendsListComponent.UpdateViewport(25, resetScroll);
         }
     }
 

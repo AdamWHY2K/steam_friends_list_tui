@@ -39,14 +39,14 @@ public class FriendsListComponent : DisplayComponent
     /// <summary>
     /// Updates the viewport size based on console dimensions
     /// </summary>
-    public void UpdateViewport(int consoleHeight)
+    public void UpdateViewport(int consoleHeight, bool resetScroll = false)
     {
-        const int headerLines = 3;
-        int visibleItems = ScrollStateManager.CalculateVisibleItems(consoleHeight, headerLines);
+        const int headerContentLines = 3; // Friend counts + username + status lines
+        int visibleItems = ScrollStateManager.CalculateVisibleItems(consoleHeight, headerContentLines);
         
         lock (_friendsLock)
         {
-            _scrollStateManager.UpdateItemCounts(_friends.Count, visibleItems);
+            _scrollStateManager.UpdateItemCounts(_friends.Count, visibleItems, resetScroll);
         }
         
         _logger.LogDebug($"Updated viewport: console height={consoleHeight}, visible items={visibleItems}, total friends={_friends.Count}");

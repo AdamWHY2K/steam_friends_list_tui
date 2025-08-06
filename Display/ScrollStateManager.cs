@@ -36,12 +36,17 @@ public class ScrollStateManager
     /// <summary>
     /// Updates the total number of items and visible items count
     /// </summary>
-    public void UpdateItemCounts(int totalItems, int visibleItems)
+    public void UpdateItemCounts(int totalItems, int visibleItems, bool resetScroll = false)
     {
         lock (_scrollLock)
         {
             _totalItems = totalItems;
             _visibleItems = visibleItems;
+            
+            if (resetScroll)
+            {
+                _scrollPosition = 0;
+            }
             
             // Ensure scroll position is still valid
             ClampScrollPosition();
@@ -143,10 +148,14 @@ public class ScrollStateManager
     /// </summary>
     public static int CalculateVisibleItems(int consoleHeight, int headerLines)
     {
-        const int panelBorders = 2; // Top and bottom borders
-        const int ruleLines = 1;
-        int reservedLines = headerLines + panelBorders + ruleLines;
+        const int panelHeader = 1;      // "Steam Friends List CLI" header
+        const int panelBorders = 2;     // Top and bottom borders of the panel
+        const int ruleLines = 1;        // Separator line between header and friends
+        const int scrollIndicator = 1;  // "Showing X-Y of Z friends" line
+        
+        int reservedLines = panelHeader + panelBorders + headerLines + ruleLines + scrollIndicator;
         int availableLines = consoleHeight - reservedLines;
+        
         // Each friend takes 2 lines (name + status)
         const int linesPerFriend = 2;
         int visibleItems = Math.Max(1, availableLines / linesPerFriend);
