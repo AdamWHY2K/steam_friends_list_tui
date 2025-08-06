@@ -48,6 +48,13 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
     public void Initialize()
     {
+        // In debug mode, don't initialize the display interface
+        if (SteamFriendsTUI.Services.DebugConfig.IsDebugMode)
+        {
+            _isInitialized = true; // Mark as initialized to avoid warnings
+            return;
+        }
+        
         if (_isInitialized)
         {
             _logger.LogWarning("Display manager is already initialized");
@@ -109,6 +116,12 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
     public void RefreshDisplay(bool resetScroll = false)
     {
+        // In debug mode, don't show the friends list UI
+        if (SteamFriendsTUI.Services.DebugConfig.IsDebugMode)
+        {
+            return;
+        }
+        
         if (!_isInitialized)
         {
             _logger.LogWarning("RefreshDisplay called before initialization");
@@ -196,6 +209,13 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
     public void Run()
     {
+        // In debug mode, don't show the friends list UI
+        if (SteamFriendsTUI.Services.DebugConfig.IsDebugMode)
+        {
+            _logger.LogDebug("Debug mode is enabled - skipping friends list display");
+            return;
+        }
+        
         if (!_isInitialized)
             throw new InvalidOperationException("SpectreConsoleDisplayManager must be initialized before running");
 

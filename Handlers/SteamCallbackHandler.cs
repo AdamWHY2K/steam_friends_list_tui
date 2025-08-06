@@ -40,7 +40,7 @@ public class SteamCallbackHandler
 
     public void OnDisconnected(SteamClient.DisconnectedCallback callback)
     {
-        Console.WriteLine(AppConstants.Messages.DisconnectedFromSteam);
+        _logger.LogInfo(AppConstants.Messages.DisconnectedFromSteam);
         _appState.IsRunning = false;
     }
 
@@ -48,7 +48,7 @@ public class SteamCallbackHandler
     {
         if (callback.Result != EResult.OK)
         {
-            Console.WriteLine("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult);
+            _logger.LogError($"Unable to logon to Steam: {callback.Result} / {callback.ExtendedResult}");
 
             // Check if this is an authentication failure that might benefit from re-authentication
             if (callback.Result == EResult.AccessDenied ||
@@ -56,7 +56,7 @@ public class SteamCallbackHandler
                 callback.Result == EResult.AccountLoginDeniedNeedTwoFactor ||
                 callback.Result == EResult.InvalidPassword)
             {
-                Console.WriteLine("Authentication tokens may be expired. Clearing saved tokens...");
+                _logger.LogWarning("Authentication tokens may be expired. Clearing saved tokens...");
                 TokenStorage.DeleteAuthTokens();
                 AuthenticationFailed?.Invoke();
                 return;
@@ -66,7 +66,7 @@ public class SteamCallbackHandler
             return;
         }
 
-        Console.WriteLine(AppConstants.Messages.SuccessfullyLoggedOn);
+        _logger.LogInfo(AppConstants.Messages.SuccessfullyLoggedOn);
         _appState.IsLoggedIn = true;
     }
 
@@ -102,6 +102,7 @@ public class SteamCallbackHandler
 
         if (_appState.FriendsListReceived)
         {
+            _logger.LogDebug("Display update triggered: Connection status changed");
             _displayManager.DisplayFriendsList(_steamFriends);
         }
     }
@@ -127,11 +128,11 @@ public class SteamCallbackHandler
         // Wait a moment and then trigger an initial display update
         Task.Delay(2000).ContinueWith(_ =>
         {
-            Console.WriteLine("Initial delay complete, updating display...");
+            _logger.LogDebug("Display update triggered: Initial friends list setup after delay");
             _displayManager.DisplayFriendsList(_steamFriends);
         });
 
-        Console.WriteLine("Requested friend info for all friends, waiting for persona state callbacks...");
+        _logger.LogDebug("Requested friend info for all friends, waiting for persona state callbacks...");
     }
 
     public void OnPersonaState(SteamFriends.PersonaStateCallback callback)
@@ -139,24 +140,26 @@ public class SteamCallbackHandler
         if (!_appState.FriendsListReceived)
             return;
 
-        Console.WriteLine($"Persona state callback received for: {callback.FriendID}");
+        var statusFlags = string.Join(", ", callback.StatusFlags.ToString().Split(',').Select(f => f.Trim()));
+        _logger.LogDebug($"Persona state callback received for: {callback.FriendID} - State: {callback.State}, Flags: [{statusFlags}], LastLogOff: {callback.LastLogOff}");
 
         // Check if this is our own persona state changing
         if (callback.FriendID == _steamClient.SteamID)
         {
             _appState.CurrentUserState = callback.State;
+            _logger.LogDebug($"Display update triggered: Own persona state changed to {callback.State}");
             _displayManager.DisplayFriendsList(_steamFriends);
             return;
         }
 
         // Check if this is a friend
         EFriendRelationship relationship = _steamFriends.GetFriendRelationship(callback.FriendID);
-        Console.WriteLine($"Friend {callback.FriendID} has relationship: {relationship}");
+        _logger.LogDebug($"Friend {callback.FriendID} has relationship: {relationship}");
 
         if (relationship == EFriendRelationship.Friend)
         {
             var friendName = _steamFriends.GetFriendPersonaName(callback.FriendID);
-            Console.WriteLine($"Processing persona state for friend: {friendName} ({callback.FriendID}) - State: {callback.State}");
+            _logger.LogDebug($"Processing persona state for friend: {friendName} ({callback.FriendID}) - State: {callback.State}");
 
             EPersonaState currentQueriedState = _steamFriends.GetFriendPersonaState(callback.FriendID);
             bool hadPreviousState = _appState.TryGetPersonaState(callback.FriendID, out EPersonaState lastState);
@@ -198,6 +201,15 @@ public class SteamCallbackHandler
                 }
             }
 
+            // Determine display update reason
+            var updateReasons = new List<string>();
+            if (hasStatusFlag) updateReasons.Add($"status changed to {callback.State}");
+            if (hasGameExtraInfoFlag) updateReasons.Add("game info updated");
+            if (callback.LastLogOff != DateTime.MinValue) updateReasons.Add("last seen time updated");
+            
+            var reasonText = updateReasons.Count > 0 ? string.Join(", ", updateReasons) : "persona state updated";
+            _logger.LogDebug($"Display update triggered: Friend {friendName} ({callback.FriendID}) - {reasonText}");
+
             _displayManager.DisplayFriendsList(_steamFriends);
         }
     }
@@ -219,6 +231,7 @@ public class SteamCallbackHandler
                     }
                     if (_appState.FriendsListReceived)
                     {
+                        _logger.LogDebug($"Display update triggered: App info received for {name} (AppID: {app.Key})");
                         _displayManager.DisplayFriendsList(_steamFriends);
                     }
                 }
@@ -228,7 +241,7 @@ public class SteamCallbackHandler
 
     public void OnLoggedOff(SteamUser.LoggedOffCallback callback)
     {
-        Console.WriteLine("Logged off of Steam: {0}", callback.Result);
+        _logger.LogInfo($"Logged off of Steam: {callback.Result}");
         _appState.IsLoggedIn = false;
         _appState.IsRunning = false;
     }

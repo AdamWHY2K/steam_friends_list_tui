@@ -23,7 +23,7 @@ public class DisplayStateManager
     public DisplayStateManager(AppState appState, ILogger logger)
     {
         _appState = appState ?? throw new ArgumentNullException(nameof(appState));
-        _friendsBuilder = new FriendsListBuilder(appState);
+        _friendsBuilder = new FriendsListBuilder(appState, logger);
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 

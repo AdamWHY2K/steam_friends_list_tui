@@ -8,10 +8,12 @@ namespace SteamFriendsTUI.Display;
 public class FriendsListBuilder
 {
     private readonly AppState _appState;
+    private readonly ILogger _logger;
 
-    public FriendsListBuilder(AppState appState)
+    public FriendsListBuilder(AppState appState, ILogger logger)
     {
         _appState = appState;
+        _logger = logger;
     }
 
     public List<FriendInfo> BuildFriendsList(SteamFriends steamFriends)
@@ -55,18 +57,18 @@ public class FriendsListBuilder
     private FriendInfo? CreateFriendInfo(SteamFriends steamFriends, SteamID steamIdFriend)
     {
         string? friendName = steamFriends.GetFriendPersonaName(steamIdFriend);
-        Console.WriteLine($"Creating friend info for {steamIdFriend}: Name='{friendName}'");
+        _logger.LogDebug($"Creating friend info for {steamIdFriend}: Name='{friendName}'");
 
         // Sometimes the name might be empty initially but become available later
         // Let's be more permissive and create a friend info anyway
         if (string.IsNullOrEmpty(friendName))
         {
             friendName = $"Friend {steamIdFriend.AccountID}"; // Use account ID as fallback
-            Console.WriteLine($"Using fallback name for {steamIdFriend}: {friendName}");
+            _logger.LogDebug($"Using fallback name for {steamIdFriend}: {friendName}");
         }
 
         EPersonaState friendState = GetFriendState(steamFriends, steamIdFriend);
-        Console.WriteLine($"Friend {friendName} ({steamIdFriend}) has state: {friendState}");
+        _logger.LogDebug($"Friend {friendName} ({steamIdFriend}) has state: {friendState}");
 
         string baseStatus = PersonaStateHelper.GetPersonaStateText(friendState);
         string statusText;
