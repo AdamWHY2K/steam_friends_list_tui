@@ -65,8 +65,8 @@ public class TokenStorage
             var json = DecryptData(encryptedData);
             var tokenData = JsonSerializer.Deserialize<AuthTokenData>(json);
 
-            // Check if tokens are too old (older than 30 days)
-            if (tokenData != null && DateTime.UtcNow - tokenData.SavedAt > TimeSpan.FromDays(30))
+            // Check if tokens are too old (older than configured expiration period)
+            if (tokenData != null && DateTime.UtcNow - tokenData.SavedAt > TimeSpan.FromDays(AppConstants.TokenExpirationDays))
             {
                 DeleteAuthTokens();
                 return null;
