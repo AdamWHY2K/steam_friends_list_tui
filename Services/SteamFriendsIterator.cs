@@ -10,7 +10,7 @@ public static class SteamFriendsIterator
     public static void ForEachFriend(SteamFriends steamFriends, Action<SteamID, EFriendRelationship> action)
     {
         int totalCount = steamFriends.GetFriendCount();
-        
+
         for (int i = 0; i < totalCount; i++)
         {
             SteamID steamIdFriend = steamFriends.GetFriendByIndex(i);
@@ -39,7 +39,7 @@ public static class SteamFriendsIterator
     public static Dictionary<EFriendRelationship, int> CountFriendsByRelationship(SteamFriends steamFriends)
     {
         var counts = new Dictionary<EFriendRelationship, int>();
-        
+
         ForEachFriend(steamFriends, (steamId, relationship) =>
         {
             counts.TryGetValue(relationship, out int currentCount);
@@ -55,7 +55,7 @@ public static class SteamFriendsIterator
     public static List<SteamID> GetFriendsOfType(SteamFriends steamFriends, EFriendRelationship targetRelationship)
     {
         var friends = new List<SteamID>();
-        
+
         ForEachFriendOfType(steamFriends, targetRelationship, steamId =>
         {
             friends.Add(steamId);

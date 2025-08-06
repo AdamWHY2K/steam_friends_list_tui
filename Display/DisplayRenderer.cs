@@ -29,15 +29,15 @@ public class DisplayRenderer
         try
         {
             AnsiConsole.Clear();
-            
+
             var content = CreateMainLayout();
-            
+
             // Use a layout that fills the entire console height
             var layout = new Layout("Root")
                 .SplitRows(
                     new Layout("Main").Update(CreateMainPanel(content))
                 );
-            
+
             AnsiConsole.Write(layout);
         }
         catch (Exception ex)
@@ -74,7 +74,7 @@ public class DisplayRenderer
                 .Border(BoxBorder.Rounded)
                 .BorderStyle(Style.Parse("red"))
                 .Padding(1, 0);
-            
+
             AnsiConsole.Write(errorPanel);
         }
         catch (Exception ex)

@@ -1,7 +1,7 @@
-using SteamKit2;
+using SteamFriendsTUI.Constants;
 using SteamFriendsTUI.Models;
 using SteamFriendsTUI.Services;
-using SteamFriendsTUI.Constants;
+using SteamKit2;
 
 namespace SteamFriendsTUI.Display;
 
@@ -17,7 +17,7 @@ public class FriendsListBuilder
     public List<FriendInfo> BuildFriendsList(SteamFriends steamFriends)
     {
         var friendsList = new List<FriendInfo>();
-        
+
         SteamFriendsIterator.ForEachFriendOfType(steamFriends, EFriendRelationship.Friend, steamIdFriend =>
         {
             var friendInfo = CreateFriendInfo(steamFriends, steamIdFriend);
@@ -42,11 +42,11 @@ public class FriendsListBuilder
     public (int actual, int blocked, int pending) CountRelationships(SteamFriends steamFriends)
     {
         var counts = SteamFriendsIterator.CountFriendsByRelationship(steamFriends);
-        
+
         int actualFriendCount = counts.GetValueOrDefault(EFriendRelationship.Friend, 0);
-        int blockedCount = counts.GetValueOrDefault(EFriendRelationship.Blocked, 0) + 
+        int blockedCount = counts.GetValueOrDefault(EFriendRelationship.Blocked, 0) +
                           counts.GetValueOrDefault(EFriendRelationship.Ignored, 0);
-        int pendingCount = counts.GetValueOrDefault(EFriendRelationship.RequestRecipient, 0) + 
+        int pendingCount = counts.GetValueOrDefault(EFriendRelationship.RequestRecipient, 0) +
                           counts.GetValueOrDefault(EFriendRelationship.RequestInitiator, 0);
 
         return (actualFriendCount, blockedCount, pendingCount);
@@ -56,7 +56,7 @@ public class FriendsListBuilder
     {
         string? friendName = steamFriends.GetFriendPersonaName(steamIdFriend);
         Console.WriteLine($"Creating friend info for {steamIdFriend}: Name='{friendName}'");
-        
+
         // Sometimes the name might be empty initially but become available later
         // Let's be more permissive and create a friend info anyway
         if (string.IsNullOrEmpty(friendName))
@@ -67,14 +67,14 @@ public class FriendsListBuilder
 
         EPersonaState friendState = GetFriendState(steamFriends, steamIdFriend);
         Console.WriteLine($"Friend {friendName} ({steamIdFriend}) has state: {friendState}");
-        
+
         string baseStatus = PersonaStateHelper.GetPersonaStateText(friendState);
         string statusText;
         string gameText = "";
 
         if (friendState == EPersonaState.Offline)
         {
-            statusText = PersonaStateHelper.GetCompleteStatusText(friendState, 
+            statusText = PersonaStateHelper.GetCompleteStatusText(friendState,
                 _appState.TryGetLastSeenTime(steamIdFriend, out DateTime lastSeenValue) ? lastSeenValue : DateTime.MinValue);
         }
         else
@@ -110,8 +110,8 @@ public class FriendsListBuilder
             }
         }
 
-        DateTime lastSeenTime = _appState.TryGetLastSeenTime(steamIdFriend, out DateTime lastSeen) 
-            ? lastSeen 
+        DateTime lastSeenTime = _appState.TryGetLastSeenTime(steamIdFriend, out DateTime lastSeen)
+            ? lastSeen
             : DateTime.MinValue;
 
         return new FriendInfo(steamIdFriend, friendName, friendState, statusText, gameText, lastSeenTime);
@@ -120,11 +120,11 @@ public class FriendsListBuilder
     private FriendInfo CreateLoadingFriendInfo(SteamID steamIdFriend)
     {
         return new FriendInfo(
-            steamIdFriend, 
-            AppConstants.LoadingText.Generic, 
-            EPersonaState.Offline, 
-            AppConstants.LoadingText.Generic, 
-            "", 
+            steamIdFriend,
+            AppConstants.LoadingText.Generic,
+            EPersonaState.Offline,
+            AppConstants.LoadingText.Generic,
+            "",
             DateTime.MinValue
         );
     }

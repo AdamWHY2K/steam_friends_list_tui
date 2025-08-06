@@ -9,7 +9,7 @@ public class ScrollStateManager
 {
     private readonly ILogger _logger;
     private readonly object _scrollLock = new();
-    
+
     private int _scrollPosition = 0;
     private int _totalItems = 0;
     private int _visibleItems = 0;
@@ -42,12 +42,12 @@ public class ScrollStateManager
         {
             _totalItems = totalItems;
             _visibleItems = visibleItems;
-            
+
             if (resetScroll)
             {
                 _scrollPosition = 0;
             }
-            
+
             // Ensure scroll position is still valid
             ClampScrollPosition();
         }
@@ -62,7 +62,7 @@ public class ScrollStateManager
         {
             int oldPosition = _scrollPosition;
             _scrollPosition = Math.Max(0, _scrollPosition - items);
-            
+
             bool changed = oldPosition != _scrollPosition;
             if (changed)
             {
@@ -82,7 +82,7 @@ public class ScrollStateManager
             int oldPosition = _scrollPosition;
             int maxScroll = Math.Max(0, _totalItems - _visibleItems);
             _scrollPosition = Math.Min(maxScroll, _scrollPosition + items);
-            
+
             bool changed = oldPosition != _scrollPosition;
             if (changed)
             {
@@ -101,7 +101,7 @@ public class ScrollStateManager
         {
             int oldPosition = _scrollPosition;
             _scrollPosition = 0;
-            
+
             bool changed = oldPosition != _scrollPosition;
             if (changed)
             {
@@ -120,7 +120,7 @@ public class ScrollStateManager
         {
             int oldPosition = _scrollPosition;
             _scrollPosition = Math.Max(0, _totalItems - _visibleItems);
-            
+
             bool changed = oldPosition != _scrollPosition;
             if (changed)
             {
@@ -152,10 +152,10 @@ public class ScrollStateManager
         const int panelBorders = 2;     // Top and bottom borders of the panel
         const int ruleLines = 1;        // Separator line between header and friends
         const int scrollIndicator = 1;  // "Showing X-Y of Z friends" line
-        
+
         int reservedLines = panelHeader + panelBorders + headerLines + ruleLines + scrollIndicator;
         int availableLines = Math.Max(4, consoleHeight - reservedLines); // Ensure at least 4 lines for friends
-        
+
         // Each friend takes 2 lines (name + status)
         const int linesPerFriend = 2;
         int visibleItems = Math.Max(1, availableLines / linesPerFriend);

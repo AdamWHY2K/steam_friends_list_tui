@@ -1,6 +1,6 @@
 using QRCoder;
-using SteamKit2.Authentication;
 using SteamFriendsTUI.Constants;
+using SteamKit2.Authentication;
 
 namespace SteamFriendsTUI.Services;
 

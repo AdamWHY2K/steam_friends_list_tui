@@ -1,7 +1,7 @@
-using SteamKit2;
 using SteamFriendsTUI.Constants;
 using SteamFriendsTUI.Models;
 using SteamFriendsTUI.Services;
+using SteamKit2;
 
 namespace SteamFriendsTUI.Display;
 

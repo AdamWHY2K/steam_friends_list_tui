@@ -61,7 +61,7 @@ public static class PersonaStateHelper
     {
         if (lastSeen == DateTime.MinValue)
             return "Unknown";
-            
+
         var timeDiff = DateTime.Now - lastSeen;
         return GetLastSeenText(timeDiff);
     }
@@ -72,13 +72,13 @@ public static class PersonaStateHelper
     public static string GetCompleteStatusText(EPersonaState state, DateTime lastSeen)
     {
         var baseStatus = GetPersonaStateText(state);
-        
+
         if (state == EPersonaState.Offline && lastSeen != DateTime.MinValue)
         {
             var lastSeenText = GetFormattedLastSeenText(lastSeen);
             return $"Last online {lastSeenText}";
         }
-        
+
         return baseStatus;
     }
 }

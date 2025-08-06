@@ -1,16 +1,16 @@
-using System.Text.Json;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Runtime.InteropServices;
-using SteamFriendsTUI.Models;
+using System.Text.Json;
 using SteamFriendsTUI.Constants;
+using SteamFriendsTUI.Models;
 
 namespace SteamFriendsTUI.Services;
 
 public class TokenStorage
 {
     private static readonly string TokenFilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "sftui",
         "auth_tokens.json"
     );
@@ -34,15 +34,15 @@ public class TokenStorage
                 SetSecureDirectoryPermissions(dirInfo);
             }
 
-            var json = JsonSerializer.Serialize(tokenData, new JsonSerializerOptions 
-            { 
-                WriteIndented = true 
+            var json = JsonSerializer.Serialize(tokenData, new JsonSerializerOptions
+            {
+                WriteIndented = true
             });
-            
+
             // Encrypt the JSON data before writing
             var encryptedData = EncryptData(json);
             File.WriteAllBytes(TokenFilePath, encryptedData);
-            
+
             // Set secure file permissions (owner read/write only)
             SetSecureFilePermissions(TokenFilePath);
         }
@@ -108,7 +108,7 @@ public class TokenStorage
     public static string GetTokenStatusMessage()
     {
         var tokens = LoadAuthTokens();
-        
+
         if (tokens == null)
         {
             return "No saved authentication tokens found.";
@@ -218,7 +218,7 @@ public class TokenStorage
     {
         try
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || 
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                 RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 // Set permissions to 600 (owner read/write only) on Unix-like systems
@@ -231,7 +231,7 @@ public class TokenStorage
                 var fileInfo = new FileInfo(filePath);
                 var security = fileInfo.GetAccessControl();
                 security.SetAccessRuleProtection(true, false); // Remove inheritance
-                
+
                 // Add full control for current user only
                 var currentUser = System.Security.Principal.WindowsIdentity.GetCurrent();
                 if (currentUser.User != null)
@@ -241,7 +241,7 @@ public class TokenStorage
                         System.Security.AccessControl.FileSystemRights.FullControl,
                         System.Security.AccessControl.AccessControlType.Allow));
                 }
-                
+
                 fileInfo.SetAccessControl(security);
             }
         }
@@ -255,7 +255,7 @@ public class TokenStorage
     {
         try
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || 
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                 RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 // Set permissions to 700 (owner read/write/execute only) on Unix-like systems
@@ -267,7 +267,7 @@ public class TokenStorage
                 // On Windows, set directory to be accessible only by the current user
                 var security = directory.GetAccessControl();
                 security.SetAccessRuleProtection(true, false); // Remove inheritance
-                
+
                 // Add full control for current user only
                 var currentUser = System.Security.Principal.WindowsIdentity.GetCurrent();
                 if (currentUser.User != null)
@@ -279,7 +279,7 @@ public class TokenStorage
                         System.Security.AccessControl.PropagationFlags.None,
                         System.Security.AccessControl.AccessControlType.Allow));
                 }
-                
+
                 directory.SetAccessControl(security);
             }
         }

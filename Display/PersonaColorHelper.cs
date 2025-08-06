@@ -1,5 +1,5 @@
-using SteamKit2;
 using SteamFriendsTUI.Services;
+using SteamKit2;
 
 namespace SteamFriendsTUI.Display;
 

@@ -1,8 +1,8 @@
 using Spectre.Console;
-using SteamKit2;
 using SteamFriendsTUI.Display.Components;
 using SteamFriendsTUI.Models;
 using SteamFriendsTUI.Services;
+using SteamKit2;
 
 namespace SteamFriendsTUI.Display;
 
@@ -17,11 +17,11 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
     private readonly DisplayRenderer _renderer;
     private readonly HeaderComponent _headerComponent;
     private readonly FriendsListComponent _friendsListComponent;
-    
+
     private bool _isInitialized = false;
     private volatile bool _isRunning = false;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
-    
+
     public event Action<uint>? AppInfoRequested;
     public event Action? ExitRequested;
 
@@ -29,13 +29,13 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
     {
         _logger = logger ?? new ConsoleLogger();
         _inputHandler = new ConsoleInputHandler(_logger);
-        
+
         // Create components
         _headerComponent = new HeaderComponent(appState, _logger);
         _friendsListComponent = new FriendsListComponent(_logger);
         _renderer = new DisplayRenderer(_headerComponent, _friendsListComponent, _logger);
         _stateManager = new DisplayStateManager(appState, _logger);
-        
+
         // Wire up events
         _inputHandler.ExitRequested += () => ExitRequested?.Invoke();
         _inputHandler.ConsoleResized += OnConsoleResized;
@@ -85,13 +85,13 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             _logger.LogWarning("DisplayFriendsList called with null steamFriends");
             return;
         }
-        
+
         _logger.LogDebug("DisplayFriendsList called - updating friends list");
         _stateManager.UpdateFromSteam(steamFriends);
-        
+
         // Reset scroll position to top when friends list is updated
         _friendsListComponent.ScrollStateManager.Reset();
-        
+
         RefreshDisplay(resetScroll: true);
     }
 
@@ -116,17 +116,17 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         }
 
         _logger.LogDebug("Display refresh requested");
-        
+
         // Update components with current state first
         var friends = _stateManager.GetCurrentFriends();
         var counts = _stateManager.GetCurrentCounts();
-        
+
         _friendsListComponent.UpdateFriends(friends);
         _headerComponent.UpdateCounts(counts.friends, counts.blocked, counts.pending);
-        
+
         // Update viewport size based on current console dimensions AFTER friends are updated
         UpdateViewport(resetScroll);
-        
+
         // Render to console
         _renderer.RenderToConsole();
     }
@@ -187,10 +187,10 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         }
 
         _logger.LogDebug("Console resize detected - refreshing display");
-        
+
         // Reset scroll position to top on resize to avoid display issues
         _friendsListComponent.ScrollStateManager.Reset();
-        
+
         RefreshDisplay();
     }
 
@@ -207,7 +207,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
         _isRunning = true;
         _logger.LogInfo("Starting display manager");
-        
+
         try
         {
             _friendsListComponent.ScrollStateManager.Reset();
@@ -233,7 +233,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
         _logger.LogInfo("Stopping display manager");
         _isRunning = false;
-        
+
         try
         {
             _cancellationTokenSource.Cancel();
@@ -252,7 +252,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         try
         {
             Stop();
-            
+
             // Unsubscribe from events
             if (_inputHandler != null)
             {
@@ -263,7 +263,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
                 _inputHandler.ScrollToTopRequested -= OnScrollToTopRequested;
                 _inputHandler.ScrollToBottomRequested -= OnScrollToBottomRequested;
             }
-            
+
             _inputHandler?.Dispose();
             try
             {

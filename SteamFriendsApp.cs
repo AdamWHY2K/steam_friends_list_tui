@@ -1,10 +1,10 @@
-using SteamKit2;
-using SteamKit2.Authentication;
-using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Constants;
 using SteamFriendsTUI.Display;
 using SteamFriendsTUI.Handlers;
+using SteamFriendsTUI.Models;
 using SteamFriendsTUI.Services;
-using SteamFriendsTUI.Constants;
+using SteamKit2;
+using SteamKit2.Authentication;
 
 namespace SteamFriendsTUI;
 
@@ -25,11 +25,11 @@ public class SteamFriendsApp : IDisposable
     {
         _steamClient = new SteamClient();
         _manager = new CallbackManager(_steamClient);
-        
+
         _steamUser = _steamClient.GetHandler<SteamUser>() ?? throw new InvalidOperationException("Failed to get SteamUser handler");
         _steamFriends = _steamClient.GetHandler<SteamFriends>() ?? throw new InvalidOperationException("Failed to get SteamFriends handler");
         _steamApps = _steamClient.GetHandler<SteamApps>() ?? throw new InvalidOperationException("Failed to get SteamApps handler");
-        
+
         _appState = new AppState();
         var logger = new SteamFriendsTUI.Services.ConsoleLogger();
         _displayManager = new SpectreConsoleDisplayManager(_appState, logger);
@@ -37,13 +37,13 @@ public class SteamFriendsApp : IDisposable
         _cancellationTokenSource = new CancellationTokenSource();
 
         SubscribeToCallbacks();
-        
+
         // Wire up the app info request event from display manager to callback handler
         _displayManager.AppInfoRequested += _callbackHandler.RequestAppInfo;
-        
+
         // Wire up the exit request event from display manager
         _displayManager.ExitRequested += Stop;
-        
+
         // Wire up authentication failure event
         _callbackHandler.AuthenticationFailed += OnAuthenticationFailed;
     }
@@ -69,7 +69,7 @@ public class SteamFriendsApp : IDisposable
             Console.WriteLine("Steam Friends List TUI - Starting up...");
             Console.WriteLine(TokenStorage.GetTokenStatusMessage());
             Console.WriteLine();
-            
+
             Console.WriteLine(AppConstants.Messages.ConnectingToSteam);
             _steamClient.Connect();
 
@@ -84,20 +84,20 @@ public class SteamFriendsApp : IDisposable
                 // Initialize and run Spectre.Console interface
                 _displayManager.Initialize();
                 _displayManager.UpdateConnectionStatus("Connected to Steam - Loading friends list...");
-                
+
                 // Give some time for initial friends list to load
                 var friendsLoadTimeout = DateTime.Now.AddSeconds(10);
                 while (!_appState.FriendsListReceived && DateTime.Now < friendsLoadTimeout && _appState.IsRunning)
                 {
                     _manager.RunWaitCallbacks(AppConstants.Timeouts.CallbackWait);
                 }
-                
+
                 // Display initial friends list if available
                 if (_appState.FriendsListReceived)
                 {
                     _displayManager.DisplayFriendsList(_steamFriends);
                 }
-                
+
                 // Start the display manager
                 _displayManager.Run();
 
@@ -126,12 +126,12 @@ public class SteamFriendsApp : IDisposable
         {
             // Try to use saved authentication tokens first
             var savedTokens = TokenStorage.LoadAuthTokens();
-            
+
             if (savedTokens != null && !_needsReAuthentication)
             {
                 Console.WriteLine($"Using saved authentication for '{savedTokens.AccountName}'...");
                 Console.WriteLine("If authentication fails, a QR code will be displayed for re-authentication.");
-                
+
                 _steamUser.LogOn(new SteamUser.LogOnDetails
                 {
                     Username = savedTokens.AccountName,
@@ -157,7 +157,7 @@ public class SteamFriendsApp : IDisposable
         Console.WriteLine("Your authentication tokens are either missing, expired, or invalid.");
         Console.WriteLine("Please scan the QR code below with the Steam Mobile app to authenticate.");
         Console.WriteLine();
-        
+
         var authSession = await _steamClient.Authentication.BeginAuthSessionViaQRAsync(new AuthSessionDetails());
 
         authSession.ChallengeURLChanged = () =>
@@ -183,7 +183,7 @@ public class SteamFriendsApp : IDisposable
             Username = pollResponse.AccountName,
             AccessToken = pollResponse.RefreshToken,
         });
-        
+
         // Reset re-authentication flag since we successfully authenticated
         _needsReAuthentication = false;
     }
@@ -192,13 +192,13 @@ public class SteamFriendsApp : IDisposable
     {
         Console.WriteLine("Authentication failed. Will retry with QR code on next connection attempt...");
         _needsReAuthentication = true;
-        
+
         // Disconnect and reconnect to trigger re-authentication
         if (_steamClient.IsConnected)
         {
             _steamClient.Disconnect();
         }
-        
+
         // Wait a moment then reconnect
         Task.Delay(2000).ContinueWith(_ =>
         {

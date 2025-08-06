@@ -1,8 +1,8 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using SteamFriendsTUI.Display;
 using SteamFriendsTUI.Models;
 using SteamFriendsTUI.Services;
-using SteamFriendsTUI.Display;
 
 namespace SteamFriendsTUI.Display.Components;
 
@@ -43,12 +43,12 @@ public class FriendsListComponent : DisplayComponent
     {
         const int headerContentLines = 3; // Friend counts + username + status lines
         int visibleItems = ScrollStateManager.CalculateVisibleItems(consoleHeight, headerContentLines);
-        
+
         lock (_friendsLock)
         {
             _scrollStateManager.UpdateItemCounts(_friends.Count, visibleItems, resetScroll);
         }
-        
+
         _logger.LogDebug($"Updated viewport: console height={consoleHeight}, visible items={visibleItems}, total friends={_friends.Count}");
     }
 
@@ -92,7 +92,7 @@ public class FriendsListComponent : DisplayComponent
 
         // Get the visible range based on scroll position
         var (startIndex, endIndex) = _scrollStateManager.GetVisibleRange();
-        
+
         // Only render friends in the visible range
         for (int i = startIndex; i < endIndex && i < friends.Count; i++)
         {
@@ -110,7 +110,7 @@ public class FriendsListComponent : DisplayComponent
             .AddColumn()
             .AddRow(new Rule().RuleStyle(Style.Parse("white")))
             .AddRow(table);
-            
+
         if (!string.IsNullOrEmpty(scrollInfo))
         {
             grid.AddRow(new Markup(scrollInfo));
@@ -124,7 +124,7 @@ public class FriendsListComponent : DisplayComponent
     private string CreateScrollIndicator(int totalFriends)
     {
         var (startIndex, endIndex) = _scrollStateManager.GetVisibleRange();
-        
+
         if (totalFriends == 0)
         {
             return ""; // No friends to show

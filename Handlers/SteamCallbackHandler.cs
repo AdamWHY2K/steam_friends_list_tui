@@ -1,8 +1,8 @@
-using SteamKit2;
-using SteamFriendsTUI.Models;
-using SteamFriendsTUI.Display;
-using SteamFriendsTUI.Services;
 using SteamFriendsTUI.Constants;
+using SteamFriendsTUI.Display;
+using SteamFriendsTUI.Models;
+using SteamFriendsTUI.Services;
+using SteamKit2;
 
 
 namespace SteamFriendsTUI.Handlers;
@@ -16,7 +16,7 @@ public class SteamCallbackHandler
     private readonly AppState _appState;
     private readonly IFriendsDisplayManager _displayManager;
     private readonly ILogger _logger;
-    
+
     // Event for authentication failure (e.g., expired tokens)
     public event Action? AuthenticationFailed;
 
@@ -49,10 +49,10 @@ public class SteamCallbackHandler
         if (callback.Result != EResult.OK)
         {
             Console.WriteLine("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult);
-            
+
             // Check if this is an authentication failure that might benefit from re-authentication
-            if (callback.Result == EResult.AccessDenied || 
-                callback.Result == EResult.InvalidLoginAuthCode || 
+            if (callback.Result == EResult.AccessDenied ||
+                callback.Result == EResult.InvalidLoginAuthCode ||
                 callback.Result == EResult.AccountLoginDeniedNeedTwoFactor ||
                 callback.Result == EResult.InvalidPassword)
             {
@@ -61,11 +61,11 @@ public class SteamCallbackHandler
                 AuthenticationFailed?.Invoke();
                 return;
             }
-            
+
             _appState.IsRunning = false;
             return;
         }
-        
+
         Console.WriteLine(AppConstants.Messages.SuccessfullyLoggedOn);
         _appState.IsLoggedIn = true;
     }
@@ -82,7 +82,7 @@ public class SteamCallbackHandler
     public void OnPlayingSession(SteamUser.PlayingSessionStateCallback callback)
     {
         _appState.CurrentPlayingAppID = callback.PlayingAppID;
-        
+
         if (callback.PlayingAppID == 0)
         {
             _appState.CurrentGame = "";
@@ -99,7 +99,7 @@ public class SteamCallbackHandler
                 _appState.CurrentGame = "";
             }
         }
-        
+
         if (_appState.FriendsListReceived)
         {
             _displayManager.DisplayFriendsList(_steamFriends);
@@ -123,14 +123,14 @@ public class SteamCallbackHandler
                 EClientPersonaStateFlag.GameDataBlob |
                 EClientPersonaStateFlag.RichPresence);
         });
-        
+
         // Wait a moment and then trigger an initial display update
-        Task.Delay(2000).ContinueWith(_ => 
+        Task.Delay(2000).ContinueWith(_ =>
         {
             Console.WriteLine("Initial delay complete, updating display...");
             _displayManager.DisplayFriendsList(_steamFriends);
         });
-        
+
         Console.WriteLine("Requested friend info for all friends, waiting for persona state callbacks...");
     }
 
@@ -152,12 +152,12 @@ public class SteamCallbackHandler
         // Check if this is a friend
         EFriendRelationship relationship = _steamFriends.GetFriendRelationship(callback.FriendID);
         Console.WriteLine($"Friend {callback.FriendID} has relationship: {relationship}");
-        
+
         if (relationship == EFriendRelationship.Friend)
         {
             var friendName = _steamFriends.GetFriendPersonaName(callback.FriendID);
             Console.WriteLine($"Processing persona state for friend: {friendName} ({callback.FriendID}) - State: {callback.State}");
-            
+
             EPersonaState currentQueriedState = _steamFriends.GetFriendPersonaState(callback.FriendID);
             bool hadPreviousState = _appState.TryGetPersonaState(callback.FriendID, out EPersonaState lastState);
 
@@ -239,7 +239,7 @@ public class SteamCallbackHandler
         {
             // Add placeholder to prevent duplicate requests
             _appState.UpdateAppName(appId, AppConstants.LoadingText.Generic);
-            
+
             var request = new SteamApps.PICSRequest(appId);
             _steamApps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, new List<SteamApps.PICSRequest>());
         }

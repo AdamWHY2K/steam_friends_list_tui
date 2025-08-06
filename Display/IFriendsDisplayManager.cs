@@ -10,10 +10,10 @@ public interface IFriendsDisplayManager : IDisposable
     void Initialize();
     void Run();
     void Stop();
-    
+
     // Event for requesting app info when game names are not cached
     event Action<uint>? AppInfoRequested;
-    
+
     // Event for requesting application exit
     event Action? ExitRequested;
 }

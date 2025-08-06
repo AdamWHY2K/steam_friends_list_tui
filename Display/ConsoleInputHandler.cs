@@ -1,5 +1,5 @@
-using SteamFriendsTUI.Services;
 using SteamFriendsTUI.Constants;
+using SteamFriendsTUI.Services;
 
 namespace SteamFriendsTUI.Display;
 
@@ -23,7 +23,7 @@ public class ConsoleInputHandler : IDisposable
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cancellationTokenSource = new CancellationTokenSource();
-        
+
         // Initialize console dimensions
         try
         {
@@ -58,7 +58,7 @@ public class ConsoleInputHandler : IDisposable
 
         _isRunning = false;
         _cancellationTokenSource.Cancel();
-        
+
         try
         {
             _inputTask?.Wait(AppConstants.Timeouts.GuiShutdown);
@@ -67,27 +67,27 @@ public class ConsoleInputHandler : IDisposable
         {
             _logger.LogError("Error stopping input handler", ex);
         }
-        
+
         _logger.LogDebug("Input handler stopped");
     }
 
     private async Task ProcessInputAsync()
     {
         _logger.LogDebug("Input processing loop started");
-        
+
         while (_isRunning && !_cancellationTokenSource.Token.IsCancellationRequested)
         {
             try
             {
                 // Check for console resize
                 CheckForConsoleResize();
-                
+
                 if (Console.KeyAvailable)
                 {
                     var keyInfo = Console.ReadKey(true);
                     HandleKeyInput(keyInfo);
                 }
-                
+
                 await Task.Delay(AppConstants.Timeouts.InputCheckInterval, _cancellationTokenSource.Token);
             }
             catch (OperationCanceledException)
@@ -100,7 +100,7 @@ public class ConsoleInputHandler : IDisposable
                 // Continue processing to avoid crashing the input handler
             }
         }
-        
+
         _logger.LogDebug("Input processing loop ended");
     }
 
@@ -110,13 +110,13 @@ public class ConsoleInputHandler : IDisposable
         {
             int currentWidth = Console.WindowWidth;
             int currentHeight = Console.WindowHeight;
-            
+
             if (currentWidth != _lastWindowWidth || currentHeight != _lastWindowHeight)
             {
                 _logger.LogDebug($"Console resize detected: {_lastWindowWidth}x{_lastWindowHeight} -> {currentWidth}x{currentHeight}");
                 _lastWindowWidth = currentWidth;
                 _lastWindowHeight = currentHeight;
-                
+
                 // Notify about the resize
                 ConsoleResized?.Invoke();
             }
@@ -130,7 +130,7 @@ public class ConsoleInputHandler : IDisposable
     private void HandleKeyInput(ConsoleKeyInfo keyInfo)
     {
         // Handle exit keys
-        if (keyInfo.Key == ConsoleKey.Q || 
+        if (keyInfo.Key == ConsoleKey.Q ||
             keyInfo.Key == ConsoleKey.Escape ||
             (keyInfo.KeyChar == 'q' || keyInfo.KeyChar == 'Q'))
         {
@@ -146,28 +146,28 @@ public class ConsoleInputHandler : IDisposable
                 _logger.LogDebug("Up arrow pressed - scrolling up");
                 ScrollUpRequested?.Invoke();
                 break;
-                
+
             case ConsoleKey.DownArrow:
                 _logger.LogDebug("Down arrow pressed - scrolling down");
                 ScrollDownRequested?.Invoke();
                 break;
-                
+
             case ConsoleKey.Home:
                 _logger.LogDebug("Home key pressed - scrolling to top");
                 ScrollToTopRequested?.Invoke();
                 break;
-                
+
             case ConsoleKey.End:
                 _logger.LogDebug("End key pressed - scrolling to bottom");
                 ScrollToBottomRequested?.Invoke();
                 break;
-                
+
             case ConsoleKey.PageUp:
                 _logger.LogDebug("Page up pressed - scrolling up by page");
                 for (int i = 0; i < 5; i++) // Scroll up by 5 items
                     ScrollUpRequested?.Invoke();
                 break;
-                
+
             case ConsoleKey.PageDown:
                 _logger.LogDebug("Page down pressed - scrolling down by page");
                 for (int i = 0; i < 5; i++) // Scroll down by 5 items
@@ -186,7 +186,7 @@ public class ConsoleInputHandler : IDisposable
     {
         Stop();
         _cancellationTokenSource?.Dispose();
-        if (_inputTask != null && 
+        if (_inputTask != null &&
             (_inputTask.Status == TaskStatus.RanToCompletion ||
              _inputTask.Status == TaskStatus.Faulted ||
              _inputTask.Status == TaskStatus.Canceled))
