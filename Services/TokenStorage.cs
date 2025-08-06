@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Runtime.InteropServices;
 using SteamFriendsCLI.Models;
+using SteamFriendsCLI.Constants;
 
 namespace SteamFriendsCLI.Services;
 
@@ -131,42 +132,48 @@ public class TokenStorage
     {
         // Use machine-specific entropy for encryption key derivation
         var entropy = GetMachineEntropy();
+        var salt = GenerateRandomSalt();
         var plainTextBytes = Encoding.UTF8.GetBytes(plainText);
 
         // Use AES encryption with machine-specific key
         using var aes = Aes.Create();
-        aes.Key = DeriveKeyFromEntropy(entropy);
+        aes.Key = DeriveKeyFromEntropy(entropy, salt);
         aes.GenerateIV();
 
         using var encryptor = aes.CreateEncryptor();
         var encryptedData = encryptor.TransformFinalBlock(plainTextBytes, 0, plainTextBytes.Length);
 
-        // Prepend IV to encrypted data
-        var result = new byte[aes.IV.Length + encryptedData.Length];
-        Array.Copy(aes.IV, 0, result, 0, aes.IV.Length);
-        Array.Copy(encryptedData, 0, result, aes.IV.Length, encryptedData.Length);
+        // Prepend salt, then IV, then encrypted data
+        var result = new byte[salt.Length + aes.IV.Length + encryptedData.Length];
+        Array.Copy(salt, 0, result, 0, salt.Length);
+        Array.Copy(aes.IV, 0, result, salt.Length, aes.IV.Length);
+        Array.Copy(encryptedData, 0, result, salt.Length + aes.IV.Length, encryptedData.Length);
 
         return result;
     }
 
     private static string DecryptData(byte[] encryptedData)
     {
-        if (encryptedData.Length < 16) // AES IV is 16 bytes
+        if (encryptedData.Length < 32) // Salt (16 bytes) + AES IV (16 bytes) minimum
             throw new ArgumentException("Invalid encrypted data");
 
         var entropy = GetMachineEntropy();
 
-        using var aes = Aes.Create();
-        aes.Key = DeriveKeyFromEntropy(entropy);
+        // Extract salt from the beginning of the encrypted data
+        var salt = new byte[16];
+        Array.Copy(encryptedData, 0, salt, 0, 16);
 
-        // Extract IV from the beginning of the encrypted data
+        using var aes = Aes.Create();
+        aes.Key = DeriveKeyFromEntropy(entropy, salt);
+
+        // Extract IV from after the salt
         var iv = new byte[16];
-        Array.Copy(encryptedData, 0, iv, 0, 16);
+        Array.Copy(encryptedData, 16, iv, 0, 16);
         aes.IV = iv;
 
         // Extract the actual encrypted data
-        var cipherText = new byte[encryptedData.Length - 16];
-        Array.Copy(encryptedData, 16, cipherText, 0, cipherText.Length);
+        var cipherText = new byte[encryptedData.Length - 32]; // 16 (salt) + 16 (IV)
+        Array.Copy(encryptedData, 32, cipherText, 0, cipherText.Length);
 
         using var decryptor = aes.CreateDecryptor();
         var decryptedBytes = decryptor.TransformFinalBlock(cipherText, 0, cipherText.Length);

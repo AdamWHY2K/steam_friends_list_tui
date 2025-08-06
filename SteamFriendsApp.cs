@@ -31,8 +31,9 @@ public class SteamFriendsApp : IDisposable
         _steamApps = _steamClient.GetHandler<SteamApps>() ?? throw new InvalidOperationException("Failed to get SteamApps handler");
         
         _appState = new AppState();
-        _displayManager = new SpectreConsoleDisplayManager(_appState, new SteamFriendsCLI.Services.ConsoleLogger());
-        _callbackHandler = new SteamCallbackHandler(_steamClient, _steamUser, _steamFriends, _steamApps, _appState, _displayManager);
+        var logger = new SteamFriendsCLI.Services.ConsoleLogger();
+        _displayManager = new SpectreConsoleDisplayManager(_appState, logger);
+        _callbackHandler = new SteamCallbackHandler(_steamClient, _steamUser, _steamFriends, _steamApps, _appState, _displayManager, logger);
         _cancellationTokenSource = new CancellationTokenSource();
 
         SubscribeToCallbacks();

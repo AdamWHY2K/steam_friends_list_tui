@@ -4,6 +4,7 @@ using SteamFriendsCLI.Display;
 using SteamFriendsCLI.Services;
 using SteamFriendsCLI.Constants;
 
+
 namespace SteamFriendsCLI.Handlers;
 
 public class SteamCallbackHandler
@@ -14,6 +15,7 @@ public class SteamCallbackHandler
     private readonly SteamApps _steamApps;
     private readonly AppState _appState;
     private readonly IFriendsDisplayManager _displayManager;
+    private readonly ILogger _logger;
     
     // Event for authentication failure (e.g., expired tokens)
     public event Action? AuthenticationFailed;
@@ -24,7 +26,8 @@ public class SteamCallbackHandler
         SteamFriends steamFriends,
         SteamApps steamApps,
         AppState appState,
-        IFriendsDisplayManager displayManager)
+        IFriendsDisplayManager displayManager,
+        ILogger logger)
     {
         _steamClient = steamClient;
         _steamUser = steamUser;
@@ -32,6 +35,7 @@ public class SteamCallbackHandler
         _steamApps = steamApps;
         _appState = appState;
         _displayManager = displayManager;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public void OnDisconnected(SteamClient.DisconnectedCallback callback)
@@ -105,7 +109,7 @@ public class SteamCallbackHandler
     public void OnFriendsList(SteamFriends.FriendsListCallback callback)
     {
         _appState.FriendsListReceived = true;
-        _logger.LogInformation("Friends list received from Steam...");
+        _logger.LogInfo("Friends list received from Steam...");
 
         // First, just get basic friend info with simpler flags
         SteamFriendsIterator.ForEachFriendOfType(_steamFriends, EFriendRelationship.Friend, steamIdFriend =>
