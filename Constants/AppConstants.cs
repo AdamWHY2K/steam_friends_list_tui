@@ -26,6 +26,11 @@ public static class AppConstants
         public const int HeaderSectionSize = 4;
     }
 
+    public static class Token
+    {
+        public const int TokenExpirationDays = 30; // Tokens expire after 30 days
+    }
+
     // UI Messages
     public static class Messages
     {
