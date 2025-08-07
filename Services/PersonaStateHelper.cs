@@ -61,8 +61,7 @@ public static class PersonaStateHelper
     {
         if (lastSeen == DateTime.MinValue)
             return "Unknown";
-
-        var timeDiff = DateTime.Now - lastSeen;
+        var timeDiff = DateTime.UtcNow - lastSeen;
         return GetLastSeenText(timeDiff);
     }
 
