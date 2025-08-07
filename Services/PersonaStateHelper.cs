@@ -42,6 +42,8 @@ public static class PersonaStateHelper
             return "moments ago";
         else if (timeDiff.TotalMinutes < 60)
             return $"{(int)timeDiff.TotalMinutes} minute{((int)timeDiff.TotalMinutes == 1 ? "" : "s")} ago";
+        else if (timeDiff.TotalHours < 2)
+            return $"{(int)timeDiff.TotalHours} hour and {(int)timeDiff.Minutes} minute{((int)timeDiff.Minutes == 1 ? "" : "s")} ago";
         else if (timeDiff.TotalHours < 24)
             return $"{(int)timeDiff.TotalHours} hour{((int)timeDiff.TotalHours == 1 ? "" : "s")} ago";
         else if (timeDiff.TotalDays < 7)
