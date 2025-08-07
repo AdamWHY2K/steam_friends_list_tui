@@ -25,6 +25,7 @@ public static class AppConstants
         // Text truncation width calculations
         public const int NameWidthReduction = 6; // 2 for borders, 3 for padding, 1 for ellipsis
         public const int StatusWidthReduction = 8; // 2 for borders, 3 for padding, 2 for indentation, 1 for ellipsis
+        public const int IndicatorWidthReduction = 4; // 2 for borders, 2 for padding
     }
 
     public static class Token

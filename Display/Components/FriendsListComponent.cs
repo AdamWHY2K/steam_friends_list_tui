@@ -1,5 +1,6 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using SteamFriendsTUI.Constants;
 using SteamFriendsTUI.Display;
 using SteamFriendsTUI.Models;
 using SteamFriendsTUI.Services;
@@ -80,7 +81,7 @@ public class FriendsListComponent : DisplayComponent
     {
         return new Grid()
             .AddColumn()
-            .AddRow(new Markup("[yellow]Loading friends list...[/]\n[dim]Please wait while Steam loads your friends data[/]"));
+            .AddRow(new Markup($"[yellow]{AppConstants.LoadingText.Generic}[/]"));
     }
 
     private IRenderable CreateFriendsTable(List<FriendInfo> friends)
@@ -133,6 +134,10 @@ public class FriendsListComponent : DisplayComponent
         // Always show the indicator if there are friends, even if all fit on screen
         int currentPosition = startIndex + 1; // 1-based for display
         int endPosition = Math.Min(endIndex, totalFriends);
-        return $"[dim]Showing {currentPosition}-{endPosition} of {totalFriends} friends[/]";
+        string text = SpectreDisplayFormatter.TruncateText(
+            $"Showing {currentPosition}-{endPosition} of {totalFriends} friends",
+            Console.WindowWidth - AppConstants.Display.IndicatorWidthReduction
+        );
+        return $"[dim]{text}[/]";
     }
 }
