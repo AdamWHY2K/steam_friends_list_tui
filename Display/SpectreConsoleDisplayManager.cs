@@ -54,7 +54,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             _isInitialized = true; // Mark as initialized to avoid warnings
             return;
         }
-        
+
         if (_isInitialized)
         {
             _logger.LogWarning("Display manager is already initialized");
@@ -121,7 +121,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         {
             return;
         }
-        
+
         if (!_isInitialized)
         {
             _logger.LogWarning("RefreshDisplay called before initialization");
@@ -215,7 +215,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             _logger.LogDebug("Debug mode is enabled - skipping friends list display");
             return;
         }
-        
+
         if (!_isInitialized)
             throw new InvalidOperationException("SpectreConsoleDisplayManager must be initialized before running");
 

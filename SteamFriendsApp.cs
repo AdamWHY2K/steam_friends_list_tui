@@ -25,7 +25,7 @@ public class SteamFriendsApp : IDisposable
     public SteamFriendsApp(bool debugMode = false)
     {
         SteamFriendsTUI.Services.DebugConfig.IsDebugMode = debugMode;
-        
+
         _steamClient = new SteamClient();
         _manager = new CallbackManager(_steamClient);
 
@@ -72,7 +72,7 @@ public class SteamFriendsApp : IDisposable
             _logger.LogInfo("Steam Friends List TUI - Starting up...");
             _logger.LogInfo(TokenStorage.GetTokenStatusMessage());
 
-            _logger.LogInfo(AppConstants.Messages.ConnectingToSteam);
+            _logger.LogInfo(AppConstants.LoadingText.Connecting);
             _steamClient.Connect();
 
             // Wait for connection and authentication to complete before starting GUI

@@ -212,11 +212,11 @@ public class SteamCallbackHandler
             // Determine if anything actually changed that would warrant a display update
             var updateReasons = new List<string>();
             bool stateChanged = !hadPreviousState || lastState != stateToTrack;
-            
+
             if (hasStatusFlag && stateChanged) updateReasons.Add($"status changed to {callback.State}");
             if (hasGameExtraInfoFlag) updateReasons.Add("game info updated");
             if (callback.LastLogOff != DateTime.MinValue) updateReasons.Add("last seen time updated");
-            
+
             // Only trigger display update if there are meaningful changes
             if (updateReasons.Count > 0)
             {
