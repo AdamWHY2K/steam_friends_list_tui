@@ -40,8 +40,20 @@ public static class SpectreDisplayFormatter
     public static string FormatFriendStatus(FriendInfo friend)
     {
         var color = GetSpectreColorForPersonaState(friend.State);
-        // Use the StatusText field which already contains game information when available
-        var statusText = TruncateText(friend.StatusText, Console.WindowWidth - AppConstants.Display.StatusWidthReduction);
+
+        // For offline friends, dynamically calculate the "last seen" time to ensure it updates
+        string statusText;
+        if (friend.State == EPersonaState.Offline && friend.LastSeen != DateTime.MinValue)
+        {
+            statusText = PersonaStateHelper.GetCompleteStatusText(friend.State, friend.LastSeen);
+        }
+        else
+        {
+            // Use the cached StatusText field for online friends (contains game information)
+            statusText = friend.StatusText;
+        }
+
+        statusText = TruncateText(statusText, Console.WindowWidth - AppConstants.Display.StatusWidthReduction);
         return $"[{color}]{statusText.EscapeMarkup()}[/]";
     }
 
