@@ -132,7 +132,7 @@ public class ConsoleInputHandler : IDisposable
         // Handle exit keys
         if (keyInfo.Key == ConsoleKey.Q ||
             keyInfo.Key == ConsoleKey.Escape ||
-            (keyInfo.KeyChar == 'q' || keyInfo.KeyChar == 'Q'))
+            (keyInfo.Key == ConsoleKey.C && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control)))
         {
             _logger.LogInfo("Exit key pressed - requesting shutdown");
             ExitRequested?.Invoke();
@@ -143,11 +143,13 @@ public class ConsoleInputHandler : IDisposable
         switch (keyInfo.Key)
         {
             case ConsoleKey.UpArrow:
+            case ConsoleKey.K:
                 _logger.LogDebug("Up arrow pressed - scrolling up");
                 ScrollUpRequested?.Invoke();
                 break;
 
             case ConsoleKey.DownArrow:
+            case ConsoleKey.J:
                 _logger.LogDebug("Down arrow pressed - scrolling down");
                 ScrollDownRequested?.Invoke();
                 break;
