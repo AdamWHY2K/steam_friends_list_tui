@@ -6,6 +6,9 @@ public static class AppConstants
     public static class LoadingText
     {
         public const string Generic = "Loading…";
+        public const string Connecting = "Connecting to Steam…";
+        public const string NoFriendsFound = "No friends found";
+        public const string GameName = "Loading game name…";
     }
 
     // Timeout constants
