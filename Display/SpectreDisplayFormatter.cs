@@ -1,4 +1,5 @@
 using Spectre.Console;
+using SteamFriendsTUI.Constants;
 using SteamFriendsTUI.Models;
 using SteamFriendsTUI.Services;
 using SteamKit2;
@@ -20,30 +21,43 @@ public static class SpectreDisplayFormatter
             _ => "white"
         };
     }
+    public static string TruncateText(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+        {
+            return text;
+        }
+        return text.Substring(0, maxLength - 1) + "…";
+    }
 
     public static string FormatFriendName(FriendInfo friend)
     {
         var color = GetSpectreColorForPersonaState(friend.State);
-        return $"[{color}]{friend.Name.EscapeMarkup()}[/]";
+        var name = TruncateText(friend.Name, Console.WindowWidth - AppConstants.Display.NameWidthReduction);
+        return $"[{color}]{name.EscapeMarkup()}[/]";
     }
 
     public static string FormatFriendStatus(FriendInfo friend)
     {
         var color = GetSpectreColorForPersonaState(friend.State);
         // Use the StatusText field which already contains game information when available
-        return $"[{color}]{friend.StatusText.EscapeMarkup()}[/]";
+        var statusText = TruncateText(friend.StatusText, Console.WindowWidth - AppConstants.Display.StatusWidthReduction);
+        return $"[{color}]{statusText.EscapeMarkup()}[/]";
     }
 
     public static string FormatUserInfo(AppState appState)
     {
         var stateText = PersonaStateHelper.GetPersonaStateText(appState.CurrentUserState);
         var stateColor = GetSpectreColorForPersonaState(appState.CurrentUserState);
-        var userInfo = $"[bold {stateColor}]{appState.CurrentPersonaName ?? "Loading..."}[/]";
-        userInfo += "\n  ";
-        userInfo += !string.IsNullOrEmpty(appState.CurrentGame)
-            ? $"[{stateColor}]{appState.CurrentGame}[/]"
-            : $"[{stateColor}]{stateText}[/]";
+        var userName = appState.CurrentPersonaName ?? AppConstants.LoadingText.Generic;
+        userName = TruncateText(userName, Console.WindowWidth - AppConstants.Display.NameWidthReduction);
+        var userInfo = $"[bold {stateColor}]{userName}[/]";
 
-        return userInfo;
+        var statusText = string.IsNullOrEmpty(appState.CurrentGame)
+            ? stateText
+            : $"{stateText} — {appState.CurrentGame}";
+        statusText = TruncateText(statusText, Console.WindowWidth - AppConstants.Display.StatusWidthReduction);
+
+        return userInfo + $"\n  [{stateColor}]{statusText.EscapeMarkup()}[/]";
     }
 }
