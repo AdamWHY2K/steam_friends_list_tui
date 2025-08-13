@@ -47,6 +47,8 @@ public class SteamFriendsApp : IDisposable
         // Wire up the exit request event from display manager
         _displayManager.ExitRequested += Stop;
 
+        _displayManager.DebugDisconnectRequested += () => _steamClient.Disconnect();
+
         // Wire up authentication failure event
         _callbackHandler.AuthenticationFailed += OnAuthenticationFailed;
     }
@@ -228,6 +230,7 @@ public class SteamFriendsApp : IDisposable
     {
         _displayManager.AppInfoRequested -= _callbackHandler.RequestAppInfo;
         _displayManager.ExitRequested -= Stop;
+        _displayManager.DebugDisconnectRequested -= () => _steamClient.Disconnect();
         _callbackHandler.AuthenticationFailed -= OnAuthenticationFailed;
         _steamClient?.Disconnect();
         _displayManager?.Dispose();

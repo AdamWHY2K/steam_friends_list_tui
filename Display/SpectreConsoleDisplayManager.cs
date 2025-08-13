@@ -26,6 +26,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
     public event Action<uint>? AppInfoRequested;
     public event Action? ExitRequested;
+    public event Action? DebugDisconnectRequested;
 
     public SpectreConsoleDisplayManager(AppState appState, ILogger? logger = null)
     {
@@ -48,6 +49,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         _inputHandler.ScrollDownRequested += OnScrollDownRequested;
         _inputHandler.ScrollToTopRequested += OnScrollToTopRequested;
         _inputHandler.ScrollToBottomRequested += OnScrollToBottomRequested;
+        _inputHandler.DebugDisconnectRequested += () => DebugDisconnectRequested?.Invoke();
         _stateManager.AppInfoRequested += (appId) => AppInfoRequested?.Invoke(appId);
     }
 
