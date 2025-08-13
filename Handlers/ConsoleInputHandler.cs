@@ -18,6 +18,7 @@ public class ConsoleInputHandler : IDisposable
     public event Action? ScrollDownRequested;
     public event Action? ScrollToTopRequested;
     public event Action? ScrollToBottomRequested;
+    public event Action? DebugDisconnectRequested;
 
     public ConsoleInputHandler(ILogger logger)
     {
@@ -174,6 +175,11 @@ public class ConsoleInputHandler : IDisposable
                 _logger.LogDebug("Page down pressed - scrolling down by page");
                 for (int i = 0; i < 5; i++) // Scroll down by 5 items
                     ScrollDownRequested?.Invoke();
+                break;
+
+            case ConsoleKey.T:
+                _logger.LogInfo("Debug disconnect triggered (T key)");
+                DebugDisconnectRequested?.Invoke();
                 break;
         }
 

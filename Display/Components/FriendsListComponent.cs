@@ -100,7 +100,7 @@ public class FriendsListComponent : DisplayComponent
             var friend = friends[i];
             var nameMarkup = SpectreDisplayFormatter.FormatFriendName(friend);
             var statusMarkup = SpectreDisplayFormatter.FormatFriendStatus(friend);
-            var friendDisplay = $"{nameMarkup}\n  {statusMarkup}";
+            var friendDisplay = $"{nameMarkup}{Environment.NewLine}  {statusMarkup}";
             table.AddRow(friendDisplay);
         }
 

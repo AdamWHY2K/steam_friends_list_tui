@@ -17,6 +17,8 @@ public static class AppConstants
         public static readonly TimeSpan CallbackWait = TimeSpan.FromSeconds(1);
         public static readonly TimeSpan GuiShutdown = TimeSpan.FromSeconds(2);
         public static readonly TimeSpan InputCheckInterval = TimeSpan.FromMilliseconds(100);
+        public static readonly TimeSpan ReconnectionDelay = TimeSpan.FromSeconds(5);
+        public static readonly TimeSpan ReconnectionRetryDelay = TimeSpan.FromSeconds(10);
     }
 
     // Display constants
@@ -40,5 +42,6 @@ public static class AppConstants
         public const string UseQrCode = "Use the Steam Mobile App to sign in via QR code:";
         public const string DisconnectedFromSteam = "Disconnected from Steam";
         public const string SuccessfullyLoggedOn = "Successfully logged on!";
+        public const string ReconnectedToSteam = "Reconnected to Steam successfully!";
     }
 }

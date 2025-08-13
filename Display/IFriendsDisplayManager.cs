@@ -16,4 +16,6 @@ public interface IFriendsDisplayManager : IDisposable
 
     // Event for requesting application exit
     event Action? ExitRequested;
+
+    event Action? DebugDisconnectRequested;
 }

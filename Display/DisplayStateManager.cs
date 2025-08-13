@@ -20,6 +20,8 @@ public class DisplayStateManager
 
     public event Action<uint>? AppInfoRequested;
 
+    public AppState AppState => _appState;
+
     public DisplayStateManager(AppState appState, ILogger logger)
     {
         _appState = appState ?? throw new ArgumentNullException(nameof(appState));

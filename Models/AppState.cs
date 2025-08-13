@@ -6,6 +6,8 @@ public class AppState
 {
     public bool IsRunning { get; set; } = true;
     public bool IsLoggedIn { get; set; } = false;
+    public bool IsConnected { get; private set; } = false;
+    public DateTime? LastDisconnectedTime { get; private set; } = null;
     public string CurrentPersonaName { get; set; } = string.Empty;
     public string CurrentGame { get; set; } = string.Empty;
     public uint CurrentPlayingAppID { get; set; } = 0u;
@@ -73,6 +75,35 @@ public class AppState
         lock (_stateLock)
         {
             return AppNameCache.ContainsKey(appId);
+        }
+    }
+
+    public void SetConnected(bool connected)
+    {
+        lock (_stateLock)
+        {
+            IsConnected = connected;
+
+            if (connected)
+            {
+                LastDisconnectedTime = null;
+            }
+            else
+            {
+                IsLoggedIn = false;
+                if (!LastDisconnectedTime.HasValue)
+                {
+                    LastDisconnectedTime = DateTime.UtcNow;
+                }
+            }
+        }
+    }
+
+    public TimeSpan? GetTimeSinceDisconnection()
+    {
+        lock (_stateLock)
+        {
+            return LastDisconnectedTime.HasValue ? DateTime.UtcNow - LastDisconnectedTime.Value : null;
         }
     }
 }
