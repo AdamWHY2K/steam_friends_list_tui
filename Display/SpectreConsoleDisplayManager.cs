@@ -244,7 +244,8 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
                 if (isDisconnected)
                 {
-                    _logger.LogDebug("Timer tick: Currently disconnected, refreshing display to update disconnection time");
+                    var timeText = _stateManager.AppState.GetTimeSinceDisconnection()?.TotalSeconds.ToString("F0") ?? "unknown";
+                    _logger.LogDebug($"Timer tick: Currently disconnected for {timeText}s, refreshing display to update disconnection time");
                 }
 
                 RefreshDisplay();

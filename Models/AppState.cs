@@ -7,7 +7,6 @@ public class AppState
     public bool IsRunning { get; set; } = true;
     public bool IsLoggedIn { get; set; } = false;
     public bool IsConnected { get; set; } = false;
-    public bool IsReconnecting { get; set; } = false;
     public DateTime? LastDisconnectedTime { get; set; } = null;
     public string CurrentPersonaName { get; set; } = string.Empty;
     public string CurrentGame { get; set; } = string.Empty;
@@ -89,14 +88,6 @@ public class AppState
                 IsLoggedIn = false;
                 LastDisconnectedTime = DateTime.Now;
             }
-        }
-    }
-
-    public void SetReconnecting(bool reconnecting)
-    {
-        lock (_stateLock)
-        {
-            IsReconnecting = reconnecting;
         }
     }
 

@@ -92,9 +92,6 @@ public static class SpectreDisplayFormatter
 
     private static string GetDisconnectionStatusText(AppState appState)
     {
-        if (appState.IsReconnecting)
-            return "Reconnecting to Steam...";
-
         var timeSinceDisconnection = appState.GetTimeSinceDisconnection();
         if (!timeSinceDisconnection.HasValue)
             return "Steam Disconnected";
