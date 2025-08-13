@@ -93,7 +93,7 @@ public class AppState
                 IsLoggedIn = false;
                 if (!LastDisconnectedTime.HasValue)
                 {
-                    LastDisconnectedTime = DateTime.Now;
+                    LastDisconnectedTime = DateTime.UtcNow;
                 }
             }
         }
@@ -103,7 +103,7 @@ public class AppState
     {
         lock (_stateLock)
         {
-            return LastDisconnectedTime.HasValue ? DateTime.Now - LastDisconnectedTime.Value : null;
+            return LastDisconnectedTime.HasValue ? DateTime.UtcNow - LastDisconnectedTime.Value : null;
         }
     }
 }

@@ -29,7 +29,14 @@ public class SteamConnectionManager : IDisposable
     {
         _logger.LogInfo("Connected to Steam");
         _appState.SetConnected(true);
-        Reconnected?.Invoke();
+        if (_hasConnectedOnce)
+        {
+            Reconnected?.Invoke();
+        }
+        else
+        {
+            _hasConnectedOnce = true;
+        }
     }
 
     public void StartReconnection()
@@ -121,7 +128,7 @@ public class SteamConnectionManager : IDisposable
 
         try
         {
-            _reconnectionTask?.Wait(TimeSpan.FromSeconds(2));
+            _reconnectionTask?.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
         }
         catch (AggregateException)
         {
