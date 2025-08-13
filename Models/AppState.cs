@@ -6,8 +6,8 @@ public class AppState
 {
     public bool IsRunning { get; set; } = true;
     public bool IsLoggedIn { get; set; } = false;
-    public bool IsConnected { get; set; } = false;
-    public DateTime? LastDisconnectedTime { get; set; } = null;
+    public bool IsConnected { get; private set; } = false;
+    public DateTime? LastDisconnectedTime { get; private set; } = null;
     public string CurrentPersonaName { get; set; } = string.Empty;
     public string CurrentGame { get; set; } = string.Empty;
     public uint CurrentPlayingAppID { get; set; } = 0u;

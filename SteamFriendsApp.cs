@@ -18,6 +18,7 @@ public class SteamFriendsApp : IDisposable
     private readonly AppState _appState;
     private readonly IFriendsDisplayManager _displayManager;
     private readonly SteamCallbackHandler _callbackHandler;
+    private readonly SteamConnectionManager _connectionManager;
     private readonly CancellationTokenSource _cancellationTokenSource;
     private readonly ILogger _logger;
     private bool _needsReAuthentication = false;
@@ -36,10 +37,14 @@ public class SteamFriendsApp : IDisposable
         _appState = new AppState();
         _logger = new SteamFriendsTUI.Services.ConsoleLogger();
         _displayManager = new SpectreConsoleDisplayManager(_appState, _logger);
+        _connectionManager = new SteamConnectionManager(_steamClient, _appState, _logger);
         _callbackHandler = new SteamCallbackHandler(_steamClient, _steamUser, _steamFriends, _steamApps, _appState, _displayManager, _logger);
         _cancellationTokenSource = new CancellationTokenSource();
 
         SubscribeToCallbacks();
+
+        // Wire up connection manager events
+        _connectionManager.Reconnected += () => _logger.LogInfo(AppConstants.Messages.ReconnectedToSteam);
 
         // Wire up the app info request event from display manager to callback handler
         _displayManager.AppInfoRequested += _callbackHandler.RequestAppInfo;
@@ -47,7 +52,7 @@ public class SteamFriendsApp : IDisposable
         // Wire up the exit request event from display manager
         _displayManager.ExitRequested += Stop;
 
-        _displayManager.DebugDisconnectRequested += () => _steamClient.Disconnect();
+        _displayManager.DebugDisconnectRequested += () => _connectionManager.RequestDisconnect();
 
         // Wire up authentication failure event
         _callbackHandler.AuthenticationFailed += OnAuthenticationFailed;
@@ -56,7 +61,7 @@ public class SteamFriendsApp : IDisposable
     private void SubscribeToCallbacks()
     {
         _manager.Subscribe<SteamClient.ConnectedCallback>(OnConnected);
-        _manager.Subscribe<SteamClient.DisconnectedCallback>(_callbackHandler.OnDisconnected);
+        _manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
         _manager.Subscribe<SteamUser.LoggedOnCallback>(_callbackHandler.OnLoggedOn);
         _manager.Subscribe<SteamUser.LoggedOffCallback>(_callbackHandler.OnLoggedOff);
         _manager.Subscribe<SteamUser.AccountInfoCallback>(_callbackHandler.OnAccountInfo);
@@ -129,8 +134,7 @@ public class SteamFriendsApp : IDisposable
     {
         try
         {
-            _appState.SetConnected(true);
-            _logger.LogInfo(AppConstants.Messages.ReconnectedToSteam);
+            _connectionManager.HandleConnected();
             
             // Try to use saved authentication tokens first
             var savedTokens = TokenStorage.LoadAuthTokens();
@@ -219,10 +223,16 @@ public class SteamFriendsApp : IDisposable
         _ = Task.Run(async () => await OnConnectedAsync(callback));
     }
 
+    private void OnDisconnected(SteamClient.DisconnectedCallback callback)
+    {
+        _connectionManager.HandleDisconnected(callback);
+    }
+
     public void Stop()
     {
         _appState.IsRunning = false;
         _cancellationTokenSource.Cancel();
+        _connectionManager.Stop();
         _displayManager.Stop();
     }
 
@@ -230,9 +240,12 @@ public class SteamFriendsApp : IDisposable
     {
         _displayManager.AppInfoRequested -= _callbackHandler.RequestAppInfo;
         _displayManager.ExitRequested -= Stop;
-        _displayManager.DebugDisconnectRequested -= () => _steamClient.Disconnect();
+        _displayManager.DebugDisconnectRequested -= () => _connectionManager.RequestDisconnect();
         _callbackHandler.AuthenticationFailed -= OnAuthenticationFailed;
+        _connectionManager.Reconnected -= () => _logger.LogInfo(AppConstants.Messages.ReconnectedToSteam);
+        
         _steamClient?.Disconnect();
+        _connectionManager?.Dispose();
         _displayManager?.Dispose();
         _cancellationTokenSource?.Dispose();
     }

@@ -42,8 +42,6 @@ public class SteamCallbackHandler
     {
         _logger.LogInfo(AppConstants.Messages.DisconnectedFromSteam);
         _appState.SetConnected(false);
-
-        _ = Task.Run(AttemptReconnection);
     }
 
     public void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -280,32 +278,6 @@ public class SteamCallbackHandler
 
             var request = new SteamApps.PICSRequest(appId);
             _steamApps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, new List<SteamApps.PICSRequest>());
-        }
-    }
-
-    private async Task AttemptReconnection()
-    {
-        while (!_appState.IsConnected && _appState.IsRunning)
-        {
-            try
-            {
-                await Task.Delay(AppConstants.Timeouts.ReconnectionDelay);
-
-                if (!_appState.IsRunning)
-                    break;
-
-                if (!_steamClient.IsConnected)
-                {
-                    _steamClient.Connect();
-                }
-
-                await Task.Delay(AppConstants.Timeouts.ReconnectionRetryDelay);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error during reconnection attempt: {ex.Message}");
-                await Task.Delay(AppConstants.Timeouts.ReconnectionRetryDelay);
-            }
         }
     }
 }
