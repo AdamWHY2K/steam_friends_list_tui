@@ -96,10 +96,7 @@ public static class SpectreDisplayFormatter
         if (!timeSinceDisconnection.HasValue)
             return "Steam Disconnected";
 
-        var timeText = timeSinceDisconnection.Value.TotalMinutes >= 1 
-            ? $"{(int)timeSinceDisconnection.Value.TotalMinutes}m ago"
-            : $"{(int)timeSinceDisconnection.Value.TotalSeconds}s ago";
-            
+        var timeText = PersonaStateHelper.GetLastSeenText(timeSinceDisconnection.Value);
         return $"Disconnected {timeText}";
     }
 
