@@ -12,6 +12,7 @@ public class SteamConnectionManager : IDisposable
     private readonly CancellationTokenSource _cancellationTokenSource;
     private Task? _reconnectionTask;
     private bool _disposed = false;
+    private bool _hasConnectedOnce = false;
 
     public event Action? Disconnected;
     public event Action? Reconnecting;
