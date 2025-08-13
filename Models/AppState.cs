@@ -83,10 +83,18 @@ public class AppState
         lock (_stateLock)
         {
             IsConnected = connected;
-            if (!connected)
+            
+            if (connected)
+            {
+                LastDisconnectedTime = null;
+            }
+            else
             {
                 IsLoggedIn = false;
-                LastDisconnectedTime = DateTime.Now;
+                if (!LastDisconnectedTime.HasValue)
+                {
+                    LastDisconnectedTime = DateTime.Now;
+                }
             }
         }
     }
