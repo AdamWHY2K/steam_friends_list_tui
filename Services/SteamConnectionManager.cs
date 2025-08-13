@@ -1,3 +1,7 @@
+using SteamFriendsTUI.Constants;
+using SteamFriendsTUI.Models;
+using SteamKit2;
+
 namespace SteamFriendsTUI.Services;
 
 public class SteamConnectionManager : IDisposable
@@ -28,17 +32,11 @@ public class SteamConnectionManager : IDisposable
         Reconnected?.Invoke();
     }
 
-    public void HandleDisconnected(SteamClient.DisconnectedCallback callback)
+    public void StartReconnection()
     {
-        _logger.LogInfo("Disconnected from Steam");
-        
-        _appState.SetConnected(false);
+        _logger.LogInfo("Starting reconnection process");
         Disconnected?.Invoke();
-
-        if (_appState.IsRunning)
-        {
-            StartReconnectionTask();
-        }
+        StartReconnectionTask();
     }
 
     private void StartReconnectionTask()

@@ -225,7 +225,12 @@ public class SteamFriendsApp : IDisposable
 
     private void OnDisconnected(SteamClient.DisconnectedCallback callback)
     {
-        _connectionManager.HandleDisconnected(callback);
+        _callbackHandler.OnDisconnected(callback);
+        
+        if (_appState.IsRunning)
+        {
+            _connectionManager.StartReconnection();
+        }
     }
 
     public void Stop()

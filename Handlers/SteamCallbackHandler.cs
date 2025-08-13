@@ -42,6 +42,9 @@ public class SteamCallbackHandler
     {
         _logger.LogInfo(AppConstants.Messages.DisconnectedFromSteam);
         _appState.SetConnected(false);
+        
+        _logger.LogDebug("Display update triggered: Steam disconnected");
+        _displayManager.DisplayFriendsList(_steamFriends);
     }
 
     public void OnLoggedOn(SteamUser.LoggedOnCallback callback)
