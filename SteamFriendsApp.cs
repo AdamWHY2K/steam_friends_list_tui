@@ -127,6 +127,9 @@ public class SteamFriendsApp : IDisposable
     {
         try
         {
+            _appState.SetConnected(true);
+            _logger.LogInfo(AppConstants.Messages.ReconnectedToSteam);
+            
             // Try to use saved authentication tokens first
             var savedTokens = TokenStorage.LoadAuthTokens();
 

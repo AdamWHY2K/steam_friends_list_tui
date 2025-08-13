@@ -41,7 +41,10 @@ public class SteamCallbackHandler
     public void OnDisconnected(SteamClient.DisconnectedCallback callback)
     {
         _logger.LogInfo(AppConstants.Messages.DisconnectedFromSteam);
-        _appState.IsRunning = false;
+        _appState.SetConnected(false);
+        _displayManager.UpdateConnectionStatus(AppConstants.Messages.WaitingForReconnection);
+
+        _ = Task.Run(AttemptReconnection);
     }
 
     public void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -68,6 +71,12 @@ public class SteamCallbackHandler
 
         _logger.LogInfo(AppConstants.Messages.SuccessfullyLoggedOn);
         _appState.IsLoggedIn = true;
+        
+        if (_appState.LastDisconnectedTime.HasValue)
+        {
+            _displayManager.UpdateConnectionStatus("Reconnected to Steam - Loading friends list...");
+            _displayManager.DisplayFriendsList(_steamFriends);
+        }
     }
 
     public void OnAccountInfo(SteamUser.AccountInfoCallback callback)
@@ -272,6 +281,47 @@ public class SteamCallbackHandler
 
             var request = new SteamApps.PICSRequest(appId);
             _steamApps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, new List<SteamApps.PICSRequest>());
+        }
+    }
+
+    private async Task AttemptReconnection()
+    {
+        while (!_appState.IsConnected && _appState.IsRunning)
+        {
+            try
+            {
+                await Task.Delay(AppConstants.Timeouts.ReconnectionDelay);
+
+                if (!_appState.IsRunning)
+                    break;
+
+                _appState.SetReconnecting(true);
+                _displayManager.UpdateConnectionStatus(AppConstants.Messages.ReconnectingToSteam);
+                _logger.LogInfo(AppConstants.Messages.ReconnectingToSteam);
+
+                if (!_steamClient.IsConnected)
+                {
+                    _steamClient.Connect();
+                }
+
+                await Task.Delay(AppConstants.Timeouts.ReconnectionRetryDelay);
+
+                if (!_appState.IsConnected && _appState.IsRunning)
+                {
+                    _logger.LogWarning(AppConstants.Messages.ReconnectionFailed);
+                    _displayManager.UpdateConnectionStatus(AppConstants.Messages.WaitingForReconnection);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error during reconnection attempt: {ex.Message}");
+                _displayManager.UpdateConnectionStatus(AppConstants.Messages.WaitingForReconnection);
+                await Task.Delay(AppConstants.Timeouts.ReconnectionRetryDelay);
+            }
+            finally
+            {
+                _appState.SetReconnecting(false);
+            }
         }
     }
 }

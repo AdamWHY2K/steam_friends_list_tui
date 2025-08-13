@@ -59,17 +59,63 @@ public static class SpectreDisplayFormatter
 
     public static string FormatUserInfo(AppState appState)
     {
+        return !appState.IsConnected 
+            ? FormatDisconnectedUserInfo(appState)
+            : FormatConnectedUserInfo(appState);
+    }
+
+    private static string FormatDisconnectedUserInfo(AppState appState)
+    {
+        var disconnectionText = GetDisconnectionStatusText(appState);
+        var userName = GetFormattedUserName(appState.CurrentPersonaName, "Steam User");
+        
+        var userInfoMarkup = $"[bold red]{userName}[/]";
+        var statusMarkup = FormatStatusText(disconnectionText, "red");
+        
+        return $"{userInfoMarkup}{Environment.NewLine}  {statusMarkup}";
+    }
+
+    private static string FormatConnectedUserInfo(AppState appState)
+    {
         var stateText = PersonaStateHelper.GetPersonaStateText(appState.CurrentUserState);
         var stateColor = GetSpectreColorForPersonaState(appState.CurrentUserState);
-        var userName = appState.CurrentPersonaName ?? AppConstants.LoadingText.Generic;
-        userName = TruncateText(userName, Console.WindowWidth - AppConstants.Display.NameWidthReduction);
-        var userInfo = $"[bold {stateColor}]{userName}[/]";
-
+        var userName = GetFormattedUserName(appState.CurrentPersonaName, AppConstants.LoadingText.Generic);
+        
+        var userInfoMarkup = $"[bold {stateColor}]{userName}[/]";
         var statusText = string.IsNullOrEmpty(appState.CurrentGame)
             ? stateText
             : $"{stateText} — {appState.CurrentGame}";
-        statusText = TruncateText(statusText, Console.WindowWidth - AppConstants.Display.StatusWidthReduction);
+        var statusMarkup = FormatStatusText(statusText, stateColor, escapeMarkup: true);
+        
+        return $"{userInfoMarkup}{Environment.NewLine}  {statusMarkup}";
+    }
 
-        return userInfo + $"\n  [{stateColor}]{statusText.EscapeMarkup()}[/]";
+    private static string GetDisconnectionStatusText(AppState appState)
+    {
+        if (appState.IsReconnecting)
+            return "Reconnecting to Steam...";
+
+        var timeSinceDisconnection = appState.GetTimeSinceDisconnection();
+        if (!timeSinceDisconnection.HasValue)
+            return "Steam Disconnected";
+
+        var timeText = timeSinceDisconnection.Value.TotalMinutes >= 1 
+            ? $"{(int)timeSinceDisconnection.Value.TotalMinutes}m ago"
+            : $"{(int)timeSinceDisconnection.Value.TotalSeconds}s ago";
+            
+        return $"Disconnected {timeText}";
+    }
+
+    private static string GetFormattedUserName(string? currentName, string fallbackName)
+    {
+        var userName = !string.IsNullOrEmpty(currentName) ? currentName : fallbackName;
+        return TruncateText(userName, Console.WindowWidth - AppConstants.Display.NameWidthReduction);
+    }
+
+    private static string FormatStatusText(string statusText, string color, bool escapeMarkup = false)
+    {
+        var truncatedText = TruncateText(statusText, Console.WindowWidth - AppConstants.Display.StatusWidthReduction);
+        var finalText = escapeMarkup ? truncatedText.EscapeMarkup() : truncatedText;
+        return $"[{color}]{finalText}[/]";
     }
 }

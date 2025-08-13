@@ -225,17 +225,28 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             var friends = _stateManager.GetCurrentFriends();
             bool hasOfflineFriends = friends.Any(f => f.State == EPersonaState.Offline && f.LastSeen != DateTime.MinValue);
 
-            if (hasOfflineFriends)
-            {
-                _logger.LogDebug("Timer tick: Found offline friends, refreshing display to update last seen times");
+            bool isDisconnected = !_stateManager.AppState.IsConnected;
 
-                // Log some example friends and their times for debugging
-                var offlineFriendsWithTimes = friends.Where(f => f.State == EPersonaState.Offline && f.LastSeen != DateTime.MinValue).Take(3);
-                foreach (var friend in offlineFriendsWithTimes)
+            if (hasOfflineFriends || isDisconnected)
+            {
+                if (hasOfflineFriends)
                 {
-                    var timeDiff = DateTime.UtcNow - friend.LastSeen;
-                    _logger.LogDebug($"Friend {friend.Name}: Last seen {friend.LastSeen:yyyy-MM-dd HH:mm:ss} UTC, diff: {timeDiff.TotalMinutes:F1} minutes");
+                    _logger.LogDebug("Timer tick: Found offline friends, refreshing display to update last seen times");
+
+                    // Log some example friends and their times for debugging
+                    var offlineFriendsWithTimes = friends.Where(f => f.State == EPersonaState.Offline && f.LastSeen != DateTime.MinValue).Take(3);
+                    foreach (var friend in offlineFriendsWithTimes)
+                    {
+                        var timeDiff = DateTime.UtcNow - friend.LastSeen;
+                        _logger.LogDebug($"Friend {friend.Name}: Last seen {friend.LastSeen:yyyy-MM-dd HH:mm:ss} UTC, diff: {timeDiff.TotalMinutes:F1} minutes");
+                    }
                 }
+
+                if (isDisconnected)
+                {
+                    _logger.LogDebug("Timer tick: Currently disconnected, refreshing display to update disconnection time");
+                }
+
                 RefreshDisplay();
             }
             else
