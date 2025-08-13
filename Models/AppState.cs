@@ -83,7 +83,7 @@ public class AppState
         lock (_stateLock)
         {
             IsConnected = connected;
-            
+
             if (connected)
             {
                 LastDisconnectedTime = null;

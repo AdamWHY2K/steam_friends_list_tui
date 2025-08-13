@@ -99,7 +99,7 @@ public class SteamConnectionManager : IDisposable
     public void RequestDisconnect()
     {
         _logger.LogInfo("Disconnect requested");
-        
+
         if (_steamClient.IsConnected)
         {
             _steamClient.Disconnect();
@@ -118,7 +118,7 @@ public class SteamConnectionManager : IDisposable
             return;
 
         Stop();
-        
+
         try
         {
             _reconnectionTask?.Wait(TimeSpan.FromSeconds(2));

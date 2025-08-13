@@ -59,7 +59,7 @@ public static class SpectreDisplayFormatter
 
     public static string FormatUserInfo(AppState appState)
     {
-        return !appState.IsConnected 
+        return !appState.IsConnected
             ? FormatDisconnectedUserInfo(appState)
             : FormatConnectedUserInfo(appState);
     }
@@ -68,10 +68,10 @@ public static class SpectreDisplayFormatter
     {
         var disconnectionText = GetDisconnectionStatusText(appState);
         var userName = GetFormattedUserName(appState.CurrentPersonaName, "Steam User");
-        
+
         var userInfoMarkup = $"[bold red]{userName}[/]";
         var statusMarkup = FormatStatusText(disconnectionText, "red");
-        
+
         return $"{userInfoMarkup}{Environment.NewLine}  {statusMarkup}";
     }
 
@@ -80,13 +80,13 @@ public static class SpectreDisplayFormatter
         var stateText = PersonaStateHelper.GetPersonaStateText(appState.CurrentUserState);
         var stateColor = GetSpectreColorForPersonaState(appState.CurrentUserState);
         var userName = GetFormattedUserName(appState.CurrentPersonaName, AppConstants.LoadingText.Generic);
-        
+
         var userInfoMarkup = $"[bold {stateColor}]{userName}[/]";
         var statusText = string.IsNullOrEmpty(appState.CurrentGame)
             ? stateText
             : $"{stateText} — {appState.CurrentGame}";
         var statusMarkup = FormatStatusText(statusText, stateColor, escapeMarkup: true);
-        
+
         return $"{userInfoMarkup}{Environment.NewLine}  {statusMarkup}";
     }
 

@@ -135,7 +135,7 @@ public class SteamFriendsApp : IDisposable
         try
         {
             _connectionManager.HandleConnected();
-            
+
             // Try to use saved authentication tokens first
             var savedTokens = TokenStorage.LoadAuthTokens();
 
@@ -226,7 +226,7 @@ public class SteamFriendsApp : IDisposable
     private void OnDisconnected(SteamClient.DisconnectedCallback callback)
     {
         _callbackHandler.OnDisconnected(callback);
-        
+
         if (_appState.IsRunning)
         {
             _connectionManager.StartReconnection();
@@ -248,7 +248,7 @@ public class SteamFriendsApp : IDisposable
         _displayManager.DebugDisconnectRequested -= () => _connectionManager.RequestDisconnect();
         _callbackHandler.AuthenticationFailed -= OnAuthenticationFailed;
         _connectionManager.Reconnected -= () => _logger.LogInfo(AppConstants.Messages.ReconnectedToSteam);
-        
+
         _steamClient?.Disconnect();
         _connectionManager?.Dispose();
         _displayManager?.Dispose();

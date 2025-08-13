@@ -42,7 +42,7 @@ public class SteamCallbackHandler
     {
         _logger.LogInfo(AppConstants.Messages.DisconnectedFromSteam);
         _appState.SetConnected(false);
-        
+
         _logger.LogDebug("Display update triggered: Steam disconnected");
         _displayManager.DisplayFriendsList(_steamFriends);
     }
@@ -71,7 +71,7 @@ public class SteamCallbackHandler
 
         _logger.LogInfo(AppConstants.Messages.SuccessfullyLoggedOn);
         _appState.IsLoggedIn = true;
-        
+
         if (_appState.LastDisconnectedTime.HasValue)
         {
             _displayManager.UpdateConnectionStatus("Reconnected to Steam - Loading friends list...");
