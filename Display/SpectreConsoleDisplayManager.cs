@@ -107,9 +107,6 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         _logger.LogDebug("DisplayFriendsList called - updating friends list");
         _stateManager.UpdateFromSteam(steamFriends);
 
-        // Reset timer change tracking since we're updating the friends list
-        _timerManager.ResetChangeTracking();
-
         // Reset scroll position to top when friends list is updated
         _friendsListComponent.ScrollStateManager.Reset();
 
