@@ -2,11 +2,13 @@
 
 A beautiful, real-time command-line interface for viewing* your Steam friends list. Monitor your friends' online status, current games, and last seen times directly from your terminal.
 
-*yes, read only for now™.. I am working on interactiveness, see issues.
+*yes, read only for now™.. I am working on interactiveness, see [issues](https://github.com/AdamWHY2K/steam_friends_list_tui/issues).
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/AdamWHY2K/steam_friends_list_tui)
+
+Images to be added soon 😊
 
 ## Features
 
@@ -28,18 +30,23 @@ A beautiful, real-time command-line interface for viewing* your Steam friends li
 
 ### Prerequisites
 
-- [.NET 9.0 Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) or later
-- Steam account with Steam Mobile app installed (for initial authentication)
+- Steam Account: Steam Mobile app installed on phone (for initial authentication)
+- Operating System: Windows 10+, macOS 10.15+, or Linux (most distributions)
+- Network: Internet connection for Steam API access
+- Terminal: Modern terminal with Unicode support (Windows Terminal, iTerm2, gnome-terminal, etc.)
+- [.NET 9.0 Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) or later _*_
+
+_* only if you plan to build from source, as the releases are self contained_
 
 ### Installation
 
 #### Option 1: Download Release (Recommended)
-1. Download the latest release for your platform from the [Releases page](https://github.com/AdamWHY2K/steam_friends_list_tui/releases)
-   - **Windows**: `sftui-win-x64.zip`
-   - **macOS**: `sftui-osx-x64.zip` 
-   - **Linux**: `sftui-linux-x64.zip`
-2. Extract the archive to your desired location
-3. Run the executable for your platform
+1. Download the latest release for your platform from the [Releases page](https://github.com/AdamWHY2K/steam_friends_list_tui/releases/latest)
+   - **Windows**: `win-x64.zip`
+   - **macOS**: `osx-x64.zip` 
+   - **Linux**: `linux-x64.gz`
+2. Extract the sftui executable to your desired location
+3. Run `sftui`
 
 #### Option 2: Build from Source (Cross-Platform)
 ```bash
@@ -49,11 +56,6 @@ cd steam_friends_list_tui
 
 # Build for your current platform
 dotnet build -c Release
-
-# Or build for a specific platform
-dotnet publish -c Release -r win-x64 --self-contained false    # Windows
-dotnet publish -c Release -r osx-x64 --self-contained false    # macOS
-dotnet publish -c Release -r linux-x64 --self-contained false  # Linux
 ```
 
 ### Usage
@@ -102,13 +104,6 @@ The application uses Steam's official QR code authentication system for secure, 
 | `Page Up/Down` | Fast scroll |
 | `Home/End` | Jump to top/bottom |
 | `Ctrl+C/ESC/Q` | Quit application |
-
-## System Requirements
-
-- **Operating System**: Windows 10+, macOS 10.15+, or Linux (most distributions)
-- **.NET Runtime**: 9.0 or later
-- **Network**: Internet connection for Steam API access
-- **Terminal**: Modern terminal with Unicode support (Windows Terminal, iTerm2, gnome-terminal, etc.)
 
 ## Privacy & Data
 
