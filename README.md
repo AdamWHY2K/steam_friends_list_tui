@@ -8,7 +8,8 @@ A beautiful, real-time command-line interface for viewing* your Steam friends li
 [![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/AdamWHY2K/steam_friends_list_tui)
 
-Images to be added soon 😊
+<img width="1062" height="1007" alt="sftui_combined" src="https://github.com/user-attachments/assets/b965b39b-c3b2-4139-9776-00765496b559" />
+The first terminal is terminator with transparent background, and disabled title/scroll bars. Second is konsole, again with disabled bars. Third is default gnome-terminal.
 
 ## Features
 
