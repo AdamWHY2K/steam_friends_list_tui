@@ -8,19 +8,6 @@ namespace SteamFriendsTUI.Display;
 
 public static class SpectreDisplayFormatter
 {
-    public static string GetSpectreColorForPersonaState(EPersonaState state)
-    {
-        return state switch
-        {
-            EPersonaState.Online => "green",
-            EPersonaState.Busy => "red",
-            EPersonaState.Away => "yellow",
-            EPersonaState.Snooze => "purple",
-            EPersonaState.LookingToTrade or EPersonaState.LookingToPlay => "cyan",
-            EPersonaState.Offline => "grey",
-            _ => "white"
-        };
-    }
     public static string TruncateText(string text, int maxLength)
     {
         if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
@@ -32,14 +19,14 @@ public static class SpectreDisplayFormatter
 
     public static string FormatFriendName(FriendInfo friend)
     {
-        var color = GetSpectreColorForPersonaState(friend.State);
+        var color = PersonaColorHelper.GetSpectreColorForPersonaState(friend.State);
         var name = TruncateText(friend.Name, Console.WindowWidth - AppConstants.Display.NameWidthReduction);
         return $"[{color}]{name.EscapeMarkup()}[/]";
     }
 
     public static string FormatFriendStatus(FriendInfo friend)
     {
-        var color = GetSpectreColorForPersonaState(friend.State);
+        var color = PersonaColorHelper.GetSpectreColorForPersonaState(friend.State);
 
         // For offline friends, dynamically calculate the "last seen" time to ensure it updates
         string statusText;
@@ -78,7 +65,7 @@ public static class SpectreDisplayFormatter
     private static string FormatConnectedUserInfo(AppState appState)
     {
         var stateText = PersonaStateHelper.GetPersonaStateText(appState.CurrentUserState);
-        var stateColor = GetSpectreColorForPersonaState(appState.CurrentUserState);
+        var stateColor = PersonaColorHelper.GetSpectreColorForPersonaState(appState.CurrentUserState);
         var userName = GetFormattedUserName(appState.CurrentPersonaName, AppConstants.LoadingText.Generic);
 
         var userInfoMarkup = $"[bold {stateColor}]{userName}[/]";

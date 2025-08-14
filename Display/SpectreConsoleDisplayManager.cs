@@ -18,7 +18,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
     private readonly DisplayRenderer _renderer;
     private readonly HeaderComponent _headerComponent;
     private readonly FriendsListComponent _friendsListComponent;
-    private readonly Timer _refreshTimer;
+    private readonly DisplayTimerManager _timerManager;
 
     private bool _isInitialized = false;
     private volatile bool _isRunning = false;
@@ -39,8 +39,12 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         _renderer = new DisplayRenderer(_headerComponent, _friendsListComponent, _logger);
         _stateManager = new DisplayStateManager(appState, _logger);
 
-        // Create a timer to refresh the display every 60 seconds to update "last seen" times
-        _refreshTimer = new Timer(OnTimerTick, null, Timeout.Infinite, Timeout.Infinite);
+        // Create timer manager for refresh logic
+        _timerManager = new DisplayTimerManager(
+            appState,
+            _logger,
+            () => _stateManager.GetCurrentFriends(),
+            () => RefreshDisplay());
 
         // Wire up events
         _inputHandler.ExitRequested += () => ExitRequested?.Invoke();
@@ -102,7 +106,6 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
         _logger.LogDebug("DisplayFriendsList called - updating friends list");
         _stateManager.UpdateFromSteam(steamFriends);
-        _refreshTimer.Change(TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
 
         // Reset scroll position to top when friends list is updated
         _friendsListComponent.ScrollStateManager.Reset();
@@ -215,54 +218,6 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
         RefreshDisplay();
     }
 
-    private void OnTimerTick(object? state)
-    {
-        // In debug mode, we don't need to check _isRunning since we're not running the UI loop
-        if (!_isInitialized || (!SteamFriendsTUI.Services.DebugConfig.IsDebugMode && !_isRunning))
-            return;
-
-        try
-        {
-            _logger.LogDebug("Timer tick: Checking for offline friends to refresh last seen times");
-            var friends = _stateManager.GetCurrentFriends();
-            bool hasOfflineFriends = friends.Any(f => f.State == EPersonaState.Offline && f.LastSeen != DateTime.MinValue);
-
-            bool isDisconnected = !_stateManager.AppState.IsConnected;
-
-            if (hasOfflineFriends || isDisconnected)
-            {
-                if (hasOfflineFriends)
-                {
-                    _logger.LogDebug("Timer tick: Found offline friends, refreshing display to update last seen times");
-
-                    // Log some example friends and their times for debugging
-                    var offlineFriendsWithTimes = friends.Where(f => f.State == EPersonaState.Offline && f.LastSeen != DateTime.MinValue).Take(3);
-                    foreach (var friend in offlineFriendsWithTimes)
-                    {
-                        var timeDiff = DateTime.UtcNow - friend.LastSeen;
-                        _logger.LogDebug($"Friend {friend.Name}: Last seen {friend.LastSeen:yyyy-MM-dd HH:mm:ss} UTC, diff: {timeDiff.TotalMinutes:F1} minutes");
-                    }
-                }
-
-                if (isDisconnected)
-                {
-                    var timeText = _stateManager.AppState.GetTimeSinceDisconnection()?.TotalSeconds.ToString("F0") ?? "unknown";
-                    _logger.LogDebug($"Timer tick: Currently disconnected for {timeText}s, refreshing display to update disconnection time");
-                }
-
-                RefreshDisplay();
-            }
-            else
-            {
-                _logger.LogDebug("Timer tick: No offline friends found, skipping refresh");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("Error during timer refresh", ex);
-        }
-    }
-
     public void Run()
     {
         // In debug mode, don't show the friends list UI
@@ -312,7 +267,6 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
 
         try
         {
-            _refreshTimer.Change(Timeout.Infinite, Timeout.Infinite);
             _cancellationTokenSource.Cancel();
             _inputHandler.Stop();
             AnsiConsole.Clear();
@@ -342,7 +296,7 @@ public class SpectreConsoleDisplayManager : IFriendsDisplayManager
             }
 
             _inputHandler?.Dispose();
-            _refreshTimer?.Dispose();
+            _timerManager?.Dispose();
             try
             {
                 _cancellationTokenSource?.Cancel();

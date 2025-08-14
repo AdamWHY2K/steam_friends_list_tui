@@ -19,6 +19,7 @@ public static class AppConstants
         public static readonly TimeSpan InputCheckInterval = TimeSpan.FromMilliseconds(100);
         public static readonly TimeSpan ReconnectionDelay = TimeSpan.FromSeconds(5);
         public static readonly TimeSpan ReconnectionRetryDelay = TimeSpan.FromSeconds(10);
+        public static readonly TimeSpan TimerRefresh = TimeSpan.FromSeconds(60);
     }
 
     // Display constants
